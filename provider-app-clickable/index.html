@@ -1,0 +1,3293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WorkX Provider · Assessor app — clickable demo</title>
+
+<!-- PWA / Add to Home Screen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WorkX Assessor">
+<meta name="theme-color" content="#0d1829">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%230d1829'/><text x='90' y='118' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-size='80' font-weight='800' text-anchor='middle' fill='%23FA7927'>Wx</text></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@700&display=swap" rel="stylesheet">
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    background: #0d1829;
+    background-image:
+      radial-gradient(circle at 80% 0%, rgba(0,174,239,0.10) 0%, transparent 55%),
+      radial-gradient(circle at 10% 100%, rgba(20,35,72,0.6) 0%, transparent 60%);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #FFFFFF;
+    overflow-x: hidden;
+  }
+  body, h1, h2, h3, p, span, button, label, input, textarea { line-height: 1.4; font-family: inherit; }
+  input, textarea, button { font-family: inherit; }
+  input:focus, textarea:focus { outline: none; }
+  button { font-family: inherit; }
+
+  .phone-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  .phone-scroll { scrollbar-width: none; }
+
+  /* Animations referenced by the design system */
+  @keyframes wxspin { to { transform: rotate(360deg); } }
+  @keyframes pxspin { to { transform: rotate(360deg); } }
+  @keyframes pxPulse {
+    0%,100% { transform: scale(1); opacity: 1; }
+    50%     { transform: scale(1.06); opacity: 0.85; }
+  }
+  @keyframes pxBar {
+    0%, 100% { transform: scaleY(0.4); }
+    50%      { transform: scaleY(1); }
+  }
+  @keyframes pxFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pxFadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pxSlideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  /* Slide transition for screen swap */
+  @keyframes slideInRight {
+    from { transform: translateX(28px); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
+  @keyframes slideInLeft {
+    from { transform: translateX(-28px); opacity: 0; }
+    to   { transform: translateX(0);     opacity: 1; }
+  }
+  .slide { width: 100%; height: 100%; }
+  .slide-in-right { animation: slideInRight 250ms cubic-bezier(0.16,1,0.3,1); }
+  .slide-in-left  { animation: slideInLeft  250ms cubic-bezier(0.16,1,0.3,1); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide-in-right, .slide-in-left { animation: none; }
+  }
+
+  /* Layout — desktop: phone frame centered */
+  .stage {
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px 20px;
+    position: relative;
+  }
+  .phone-wrap {
+    flex-shrink: 0;
+    transform-origin: center;
+  }
+
+  /* Floating reset button — outside the phone frame */
+  .reset-btn {
+    position: fixed; right: 20px; bottom: 20px;
+    z-index: 100; background: rgba(255,255,255,0.10);
+    color: #FFFFFF;
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    padding: 10px 14px; border-radius: 999px;
+    font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: background 150ms;
+  }
+  .reset-btn:hover { background: rgba(255,255,255,0.18); }
+
+  /* Mobile — hide phone bezel so the screen reads full-bleed.
+     useFitScale already shrinks the phone to viewport; this just removes the chrome. */
+  @media (max-width: 480px) {
+    body {
+      background: #FFFFFF;
+      background-image: none;
+    }
+    .stage { padding: 0; }
+    .phone-wrap > div { /* outer Phone bezel div */
+      background: transparent !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+    .phone-wrap > div > div { /* inner white frame */
+      border-radius: 0 !important;
+    }
+    .reset-btn {
+      right: 10px; bottom: 10px;
+      padding: 7px 9px; font-size: 11px;
+    }
+    .reset-btn span { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Libs -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.25.7/babel.min.js" crossorigin></script>
+
+<script type="text/babel" data-module="brand" data-presets="react">
+/* global React */
+/* Provider design system — white-label tokens for BCITO / Skills / Competenz / neutral
+   Plus a density mode and a context for components to consume. */
+
+const { createContext, useContext, useMemo } = React;
+
+/* ============================================================
+   Provider brand registry — each provider sets its own palette.
+   These are pulled from public brand guidelines / sites:
+   - BCITO: teal #00AEEF + orange #F47920 + navy #1D3042 (matches the JSX)
+   - Skills (Te Pūkenga): purple-leaning, warm orange accent
+   - Competenz: green primary, warm yellow accent
+   - WorkX: neutral platform brand — orange + navy
+   ============================================================ */
+
+const PROVIDERS = {
+  bcito: {
+    id: 'bcito',
+    name: 'BCITO',
+    tagline: 'Building & Construction ITO',
+    primary: '#00AEEF',     // teal
+    primaryDeep: '#0094CC',
+    accent: '#F47920',      // orange — CTAs
+    accentDeep: '#E0660E',
+    navy: '#1D3042',
+    navyDeep: '#142534',
+    primarySoft: '#E6F7FD',
+    accentSoft: '#FEF1E7',
+    headerGradient: ['#1D3042', '#00AEEF'],   // navy → teal
+    logoText: 'BCITO',
+    logoLockup: 'BCITO',
+  },
+  skills: {
+    id: 'skills',
+    name: 'Skills',
+    tagline: 'Industry training',
+    primary: '#5B2D90',      // purple
+    primaryDeep: '#46226F',
+    accent: '#FF7A1A',       // orange
+    accentDeep: '#E0660E',
+    navy: '#241640',
+    navyDeep: '#160B2A',
+    primarySoft: '#F1ECF7',
+    accentSoft: '#FFEFE2',
+    headerGradient: ['#241640', '#5B2D90'],
+    logoText: 'Skills',
+    logoLockup: 'Skills',
+  },
+  competenz: {
+    id: 'competenz',
+    name: 'Competenz',
+    tagline: 'Manufacturing & engineering',
+    primary: '#2BAE66',      // green
+    primaryDeep: '#1F8C4F',
+    accent: '#F4B400',       // warm yellow
+    accentDeep: '#D69A00',
+    navy: '#0F3D2C',
+    navyDeep: '#08291D',
+    primarySoft: '#E8F6EE',
+    accentSoft: '#FEF5DA',
+    headerGradient: ['#0F3D2C', '#2BAE66'],
+    logoText: 'Competenz',
+    logoLockup: 'Competenz',
+  },
+  workx: {
+    id: 'workx',
+    name: 'WorkX',
+    tagline: 'No provider branding',
+    primary: '#142348',       // navy as primary
+    primaryDeep: '#0d1829',
+    accent: '#FA7927',        // WorkX orange
+    accentDeep: '#E0660E',
+    navy: '#142348',
+    navyDeep: '#0d1829',
+    primarySoft: '#EEF1F8',
+    accentSoft: '#FFF0E2',
+    headerGradient: ['#0d1829', '#142348'],
+    logoText: 'WorkX',
+    logoLockup: 'WorkX',
+  },
+};
+
+/* ============================================================
+   Density — comfortable / compact
+   ============================================================ */
+const DENSITY = {
+  comfortable: {
+    cardPadX: 16,
+    cardPadY: 14,
+    cardGap: 8,
+    listItemH: 72,
+    fontSize: 14,
+    lineHeight: 1.45,
+  },
+  compact: {
+    cardPadX: 14,
+    cardPadY: 11,
+    cardGap: 6,
+    listItemH: 60,
+    fontSize: 13.5,
+    lineHeight: 1.4,
+  },
+};
+
+/* ============================================================
+   Type scale — pro/utilitarian
+   Heavier weights, tight tracking, monospaced numerics for tabular data.
+   ============================================================ */
+const TYPE = {
+  // Display
+  d1: { fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 },
+  d2: { fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em', lineHeight: 1.2 },
+  // Headers
+  h1: { fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25 },
+  h2: { fontSize: 16, fontWeight: 700, letterSpacing: '-0.005em', lineHeight: 1.3 },
+  h3: { fontSize: 14, fontWeight: 600, letterSpacing: 0, lineHeight: 1.35 },
+  // Body
+  body: { fontSize: 14, fontWeight: 400, lineHeight: 1.45 },
+  bodyStrong: { fontSize: 14, fontWeight: 600, lineHeight: 1.45 },
+  small: { fontSize: 12.5, fontWeight: 400, lineHeight: 1.4 },
+  smallStrong: { fontSize: 12.5, fontWeight: 600, lineHeight: 1.4 },
+  // Caption / eyebrow
+  eyebrow: { fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1.2 },
+  caption: { fontSize: 11, fontWeight: 500, lineHeight: 1.35 },
+  // Numerics — tabular
+  num: { fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' },
+  mono: { fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" },
+};
+
+/* ============================================================
+   Neutral greys — Linear-ish ramp
+   ============================================================ */
+const NEUTRAL = {
+  ink:   '#0F1419',
+  ink2:  '#1F2937',
+  ink3:  '#374151',
+  body:  '#4B5563',
+  mute:  '#6B7280',
+  mute2: '#9CA3AF',
+  line:  '#E5E7EB',
+  line2: '#EEF0F3',
+  bg:    '#F5F6F8',
+  bgAlt: '#FAFBFC',
+  white: '#FFFFFF',
+};
+
+/* ============================================================
+   Status / outcome colours — consistent across providers
+   ============================================================ */
+const STATUS = {
+  pass:    { bg: '#DCFCE7', fg: '#15803D', solid: '#16A34A' },
+  partial: { bg: '#FEF3C7', fg: '#92400E', solid: '#D97706' },
+  fail:    { bg: '#FEE2E2', fg: '#991B1B', solid: '#DC2626' },
+  draft:   { bg: '#E5E7EB', fg: '#374151', solid: '#6B7280' },
+  sync:    { bg: '#DBEAFE', fg: '#1D4ED8', solid: '#2563EB' },
+  offline: { bg: '#FEF3C7', fg: '#92400E', solid: '#D97706' },
+  risk:    { bg: '#FEE2E2', fg: '#991B1B', solid: '#DC2626' },
+  ok:      { bg: '#DCFCE7', fg: '#15803D', solid: '#16A34A' },
+};
+
+/* ============================================================
+   Brand context — components read this to colour themselves.
+   ============================================================ */
+const BrandCtx = createContext({
+  brand: PROVIDERS.bcito,
+  density: DENSITY.comfortable,
+  densityKey: 'comfortable',
+});
+
+function BrandProvider({ providerId = 'bcito', densityKey = 'comfortable', children }) {
+  const value = useMemo(() => ({
+    brand: PROVIDERS[providerId] || PROVIDERS.bcito,
+    density: DENSITY[densityKey] || DENSITY.comfortable,
+    densityKey,
+  }), [providerId, densityKey]);
+  return <BrandCtx.Provider value={value}>{children}</BrandCtx.Provider>;
+}
+
+function useBrand() { return useContext(BrandCtx); }
+
+Object.assign(window, {
+  PROVIDERS, DENSITY, TYPE, NEUTRAL, STATUS,
+  BrandProvider, useBrand,
+});
+
+</script>
+<script type="text/babel" data-module="icons" data-presets="react">
+/* global React, lucide */
+/* Shared icon helper + design tokens + i18n strings (Te Reo / English) */
+
+const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
+
+/* ---------- Icon ---------- */
+function lucideKey(name) { return name.replace(/(^|-)([a-z])/g, (_, __, c) => c.toUpperCase()); }
+function Icon({ name, size = 24, color = '#142348', strokeWidth = 2, className = '', style = {} }) {
+  const data = (typeof lucide !== 'undefined' && lucide.icons) ? lucide.icons[lucideKey(name)] : null;
+  if (!data) return <span style={{ display: 'inline-block', width: size, height: size, ...style }} />;
+  const children = data[2] || [];
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+      fill="none" stroke={color} strokeWidth={strokeWidth}
+      strokeLinecap="round" strokeLinejoin="round"
+      className={className} style={{ display: 'inline-block', flexShrink: 0, ...style }}>
+      {children.map((child, i) => React.createElement(child[0], { key: i, ...child[1] }))}
+    </svg>
+  );
+}
+
+/* ---------- Logo mark (real WorkX brand mark) ----------
+   variant: 'colour' (default — for light backgrounds)
+          | 'white-orange' (for navy / dark backgrounds)
+          | 'black' / 'white' (sparingly, single-colour use)
+   The legacy `light` boolean still picks white-orange so existing
+   call-sites keep working on dark headers.
+*/
+function VxMark({ size = 28, light = false, variant }) {
+  const v = variant || (light ? 'white-orange' : 'colour');
+  const src = {
+    'colour':       'assets/workx-logo-colour.png',
+    'white-orange': 'assets/workx-logo-white-orange.png',
+    'black':        'assets/workx-icon-black.png',
+    'white':        'assets/workx-icon-white.png',
+  }[v];
+  return (
+    <img src={src} alt="WorkX" style={{
+      width: size, height: size, objectFit: 'contain',
+      flexShrink: 0, display: 'inline-block',
+    }} />
+  );
+}
+
+/* ---------- Spinner ---------- */
+function Spinner({ size = 24, color = '#FA7927', track = 'rgba(0,0,0,0.08)' }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 9999,
+      border: `${Math.max(2, size / 10)}px solid ${track}`,
+      borderTopColor: color,
+      animation: 'wxspin 0.8s linear infinite',
+      flexShrink: 0,
+    }} />
+  );
+}
+
+/* ---------- Status pill ---------- */
+function Pill({ tone, children, dark }) {
+  const tones = {
+    pending:  { bg: '#FEF3C7', fg: '#92400E' },
+    approved: { bg: '#DCFCE7', fg: '#166534' },
+    rejected: { bg: '#FEE2E2', fg: '#991B1B' },
+    progress: { bg: '#142348', fg: '#FFFFFF' },
+    locked:   { bg: '#E5E5E5', fg: '#4A4A4A' },
+    info:     { bg: '#DBEAFE', fg: '#1E3A8A' },
+    fresh:    { bg: 'rgba(250,121,39,0.15)', fg: '#FA7927' },
+  };
+  const t = tones[tone] || tones.locked;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      paddingTop: 4, paddingBottom: 4, paddingLeft: 10, paddingRight: 10,
+      borderRadius: 9999, background: t.bg, color: t.fg,
+      fontSize: 12, fontWeight: 600, lineHeight: 1.4,
+    }}>{children}</span>
+  );
+}
+
+/* ---------- Avatar ---------- */
+function Avatar({ initials, color = '#142348', size = 40, fontSize, ring }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 9999, background: color,
+      color: '#FFFFFF',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: fontSize || Math.max(11, size * 0.4), fontWeight: 700,
+      flexShrink: 0,
+      boxShadow: ring ? `0 0 0 2px ${ring}` : 'none',
+    }}>{initials}</div>
+  );
+}
+
+/* ---------- Status bar (iOS dynamic island style) ---------- */
+function StatusBar({ dark }) {
+  const color = dark ? '#FFFFFF' : '#1A1A1A';
+  return (
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0, height: 44,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      paddingLeft: 28, paddingRight: 28, paddingTop: 14,
+      fontSize: 14, fontWeight: 600, color,
+      zIndex: 50, pointerEvents: 'none',
+    }}>
+      <span>9:41</span>
+      <div style={{
+        position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+        width: 110, height: 30, background: '#000', borderRadius: 9999,
+      }} />
+      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+        <Icon name="signal" size={14} color={color} strokeWidth={2.5} />
+        <Icon name="wifi" size={14} color={color} strokeWidth={2.5} />
+        <Icon name="battery-full" size={18} color={color} strokeWidth={2} />
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   I18N — English / Te Reo Māori
+   Only key student-facing strings; rest stay in English for Phase 1.
+   ============================================================ */
+const COPY = {
+  en: {
+    morning: 'Morning',
+    afternoon: 'Afternoon',
+    welcomeBack: 'Welcome back',
+    schoolEmail: 'School email',
+    password: 'Password',
+    signIn: 'Sign in',
+    forgot: 'Forgot password?',
+    forgotTitle: 'Forgot your password?',
+    forgotBody: 'Pop your school email in and we\'ll send a reset link.',
+    sendReset: 'Send reset link',
+    backToSignIn: 'Back to sign in',
+    welcomeKia: 'Kia ora',
+    onboardingWelcomeT: 'Glad you\'re here, Joshua',
+    onboardingWelcomeB: 'WorkX is for tracking your placement and your learning. We\'ll keep it simple.',
+    onboardingWhatT: 'Three things you\'ll do',
+    onboardingWhatB: 'Check in when you arrive at work, write a quick diary entry at the end of the day, and tick off milestones as you go.',
+    onboardingNotifT: 'Friendly nudges?',
+    onboardingNotifB: 'A small ping each morning to check in. Quiet by 9pm. You can change this later.',
+    onboardingLocT: 'Location at check-in',
+    onboardingLocB: 'We use your location only when you tap check in — to confirm you\'re at your placement.',
+    onboardingDoneT: 'You\'re all set',
+    onboardingDoneB: 'Let\'s start your day.',
+    onboardingNext: 'Next',
+    onboardingAllow: 'Allow',
+    onboardingNotNow: 'Not now',
+    onboardingFinish: 'Open WorkX',
+    onboardingSkip: 'Skip',
+    home: 'Home',
+    diary: 'Diary',
+    programme: 'Programme',
+    calendar: 'Calendar',
+    profile: 'Profile',
+    tapToCheckIn: 'Tap to check in',
+    checkIn: 'Check in',
+    checkOut: 'Check out',
+    notToday: 'Not today',
+    atWork: 'I\'m at work',
+    areYouAtWork: 'Are you at work?',
+    checkedInAt: 'Checked in at',
+    checkedOutAt: 'Checked out at',
+    seeYouTomorrow: 'See you tomorrow',
+    awaitingEmployer: 'Awaiting employer confirmation',
+    confirmedByEmployer: 'Confirmed by your employer',
+    employerNotified: 'Your employer has been notified — they\'ll confirm shortly',
+    quickSelfie: 'Quick selfie to confirm',
+    selfieWhy: 'Front camera, one shot. We never show this back to you.',
+    takePhoto: 'Take photo',
+    todaysFocus: 'Today\'s focus',
+    streak: 'Streak',
+    daysOnSite: 'days on site',
+    diaryEntries: 'entries this term',
+    addEntry: 'Add today\'s entry',
+    milestonesInProgress: 'Milestones in progress',
+    sick: 'Sick',
+    injury: 'Injury',
+    other: 'Other',
+    confirm: 'Confirm',
+    cancel: 'Cancel',
+  },
+  mi: {
+    morning: 'Mōrena',
+    afternoon: 'Ahiahi',
+    welcomeBack: 'Nau mai anō',
+    schoolEmail: 'Īmēra kura',
+    password: 'Kupuhipa',
+    signIn: 'Takiuru',
+    forgot: 'Kua warewaretia te kupuhipa?',
+    forgotTitle: 'Kua warewaretia tō kupuhipa?',
+    forgotBody: 'Tukuna tō īmēra kura, ka tukuna atu he hononga whakatika.',
+    sendReset: 'Tukuna te hononga',
+    backToSignIn: 'Hoki ki te takiuru',
+    welcomeKia: 'Kia ora',
+    onboardingWelcomeT: 'Tēnā koe, Joshua',
+    onboardingWelcomeB: 'Hei aroturuki i tō tūnga mahi me ō akoranga te WorkX. Ka māmā noa.',
+    onboardingWhatT: 'E toru ngā mahi',
+    onboardingWhatB: 'Takiuru ina tae ki te mahi, tuhia he kōrero rātaka ka mutu te rā, ā, kohia ngā tohu wāhanga.',
+    onboardingNotifT: 'He whakamāharatanga?',
+    onboardingNotifB: 'He pīpī iti i te ata. Ka noho mārie i te 9pm. Ka taea te whakarerekē ā muri.',
+    onboardingLocT: 'Wāhi i te wā o te takiuru',
+    onboardingLocB: 'Ka whakamahia tō wāhi inā takiuru koe — hei whakaū kei te mahi koe.',
+    onboardingDoneT: 'Kua rite koe',
+    onboardingDoneB: 'Me tīmata tō rā.',
+    onboardingNext: 'Panuku',
+    onboardingAllow: 'Whakaae',
+    onboardingNotNow: 'Kāo, ehara i tēnei wā',
+    onboardingFinish: 'Whakatuwhera',
+    onboardingSkip: 'Pekehia',
+    home: 'Kāinga',
+    diary: 'Rātaka',
+    programme: 'Hōtaka',
+    calendar: 'Maramataka',
+    profile: 'Kōtaha',
+    tapToCheckIn: 'Pātōhia ki te takiuru',
+    checkIn: 'Takiuru',
+    checkOut: 'Takiputa',
+    notToday: 'Kāore i tēnei rā',
+    atWork: 'Kei te mahi au',
+    areYouAtWork: 'Kei te mahi koe?',
+    checkedInAt: 'Kua takiuru i te',
+    checkedOutAt: 'Kua takiputa i te',
+    seeYouTomorrow: 'Kia kite āpōpō',
+    awaitingEmployer: 'E tatari ana ki te kaituku mahi',
+    confirmedByEmployer: 'Kua whakaūtia e tō kaituku mahi',
+    employerNotified: 'Kua whakamōhiotia tō kaituku mahi — ka whakaū wawe',
+    quickSelfie: 'He whakaahua tere hei whakaū',
+    selfieWhy: 'Mata o mua, kotahi noa. Kāore mātou e whakaatu mai.',
+    takePhoto: 'Tangohia',
+    todaysFocus: 'Aronga o tēnei rā',
+    streak: 'Tukutahi',
+    daysOnSite: 'rā kei te mahi',
+    diaryEntries: 'kōrero i tēnei wāhanga',
+    addEntry: 'Tāpiri kōrero',
+    milestonesInProgress: 'Tohu wāhanga e haere ana',
+    sick: 'Māuiui',
+    injury: 'Whara',
+    other: 'Atu',
+    confirm: 'Whakaūtia',
+    cancel: 'Whakakore',
+  },
+};
+
+const I18nCtx = createContext({ lang: 'en', t: (k) => COPY.en[k] || k });
+
+function I18nProvider({ lang, children }) {
+  const value = useMemo(() => ({
+    lang,
+    t: (k) => (COPY[lang] && COPY[lang][k]) || COPY.en[k] || k,
+  }), [lang]);
+  return <I18nCtx.Provider value={value}>{children}</I18nCtx.Provider>;
+}
+
+function useT() { return useContext(I18nCtx); }
+
+Object.assign(window, { Icon, VxMark, Spinner, Pill, Avatar, StatusBar, I18nProvider, useT, COPY });
+
+</script>
+<script type="text/babel" data-module="ds" data-presets="react">
+/* global React, Icon, useBrand, NEUTRAL, TYPE, STATUS */
+/* Provider app — shared components.
+   All consume BrandCtx so they re-skin with the active provider. */
+
+const { useState } = React;
+
+/* ============================================================
+   ProviderHeader — the gradient hero used across the app.
+   variant: 'tall' (home) | 'step' (step picker) | 'compact' (regular pages)
+   ============================================================ */
+function ProviderHeader({
+  variant = 'compact',
+  title,
+  subtitle,
+  eyebrow,
+  onBack,
+  trailing,
+  showLogo = false,
+  step,
+  totalSteps,
+  children,
+  flush = false,   // when used inside flush phone, sits at top
+}) {
+  const { brand } = useBrand();
+  const padTop = flush ? 56 : 56;  // status bar room
+  const padBottom = variant === 'tall' ? 28 : variant === 'step' ? 22 : 18;
+
+  return (
+    <div style={{
+      paddingTop: padTop,
+      paddingBottom: padBottom,
+      paddingLeft: 18, paddingRight: 18,
+      color: '#FFFFFF',
+      background: `linear-gradient(135deg, ${brand.headerGradient[0]} 0%, ${brand.headerGradient[1]} 100%)`,
+      position: 'relative',
+    }}>
+      {/* Back / trailing row */}
+      {(onBack || trailing || (step && totalSteps)) && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginBottom: variant === 'tall' ? 18 : 12,
+        }}>
+          {onBack ? (
+            <button onClick={onBack} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 13, fontWeight: 500, opacity: 0.92,
+              background: 'transparent', border: 'none', color: '#FFFFFF',
+              padding: 0, cursor: 'pointer', marginLeft: -4,
+            }}>
+              <Icon name="chevron-left" size={18} color="#FFFFFF" /> Back
+            </button>
+          ) : <div />}
+          {step && totalSteps ? (
+            <div style={{ display: 'flex', gap: 4 }}>
+              {Array.from({ length: totalSteps }).map((_, i) => (
+                <div key={i} style={{
+                  height: 3, borderRadius: 999,
+                  width: i + 1 === step ? 22 : 10,
+                  background: i + 1 <= step ? brand.accent : 'rgba(255,255,255,0.28)',
+                  transition: 'all 0.2s',
+                }} />
+              ))}
+            </div>
+          ) : null}
+          {trailing && <div>{trailing}</div>}
+        </div>
+      )}
+
+      {showLogo && <ProviderLogo />}
+
+      {eyebrow && (
+        <div style={{ ...TYPE.eyebrow, opacity: 0.75, marginBottom: 6 }}>
+          {eyebrow}
+        </div>
+      )}
+
+      {title && (
+        <div style={{
+          ...(variant === 'tall' ? TYPE.d1 : TYPE.d2),
+          color: '#FFFFFF',
+        }}>{title}</div>
+      )}
+
+      {subtitle && (
+        <div style={{
+          fontSize: 13.5, opacity: 0.82, marginTop: 4, lineHeight: 1.4,
+          fontWeight: 400,
+        }}>{subtitle}</div>
+      )}
+
+      {children && <div style={{ marginTop: 16 }}>{children}</div>}
+    </div>
+  );
+}
+
+/* ============================================================
+   ProviderLogo — provider lockup with WorkX co-brand
+   Built type-only since we don't have real logo files.
+   ============================================================ */
+function ProviderLogo({ inline = false, dark = false }) {
+  const { brand } = useBrand();
+  const fg = dark ? brand.navy : '#FFFFFF';
+
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 10,
+      marginBottom: inline ? 0 : 14,
+    }}>
+      <div style={{
+        height: 26, paddingLeft: 9, paddingRight: 9,
+        borderRadius: 5,
+        background: brand.accent,
+        color: '#FFFFFF',
+        fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em',
+        display: 'inline-flex', alignItems: 'center',
+      }}>
+        {brand.logoText}
+      </div>
+      <div style={{
+        fontSize: 11, fontWeight: 500, color: fg,
+        opacity: dark ? 0.55 : 0.7,
+        letterSpacing: '0.04em',
+      }}>
+        on WorkX
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Card — the core surface
+   ============================================================ */
+function Card({ children, padding, onClick, style, hoverable = !!onClick, accent }) {
+  const { density } = useBrand();
+  const px = padding != null ? padding : density.cardPadX;
+  const py = padding != null ? padding : density.cardPadY;
+  const Elem = onClick ? 'button' : 'div';
+  return (
+    <Elem
+      onClick={onClick}
+      style={{
+        background: '#FFFFFF',
+        borderRadius: 14,
+        boxShadow: '0 1px 2px rgba(15,20,25,0.04), 0 0 0 1px rgba(15,20,25,0.04)',
+        paddingLeft: px, paddingRight: px,
+        paddingTop: py, paddingBottom: py,
+        display: 'block', width: '100%', textAlign: 'left',
+        cursor: onClick ? 'pointer' : 'default',
+        border: 'none',
+        position: 'relative',
+        ...(accent ? { borderLeft: `3px solid ${accent}` } : {}),
+        ...style,
+      }}
+    >{children}</Elem>
+  );
+}
+
+/* ============================================================
+   ListRow — for caseload, schedule, students, etc.
+   ============================================================ */
+function ListRow({ leading, title, subtitle, meta, trailing, onClick, badge, sub2, dense = false }) {
+  const padY = dense ? 10 : 13;
+  const Elem = onClick ? 'button' : 'div';
+  return (
+    <Elem onClick={onClick} style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      paddingLeft: 14, paddingRight: 14, paddingTop: padY, paddingBottom: padY,
+      background: '#FFFFFF', width: '100%', textAlign: 'left',
+      borderRadius: 12, border: 'none',
+      cursor: onClick ? 'pointer' : 'default',
+      boxShadow: '0 1px 2px rgba(15,20,25,0.04), 0 0 0 1px rgba(15,20,25,0.05)',
+    }}>
+      {leading && <div style={{ flexShrink: 0 }}>{leading}</div>}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{
+            ...TYPE.bodyStrong, color: NEUTRAL.ink,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{title}</div>
+          {badge}
+        </div>
+        {subtitle && (
+          <div style={{ ...TYPE.small, color: NEUTRAL.mute, marginTop: 2,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{subtitle}</div>
+        )}
+        {sub2 && <div style={{ marginTop: 6 }}>{sub2}</div>}
+      </div>
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+        {meta}
+        {trailing != null ? trailing : <Icon name="chevron-right" size={16} color="#D1D5DB" />}
+      </div>
+    </Elem>
+  );
+}
+
+/* ============================================================
+   Pill / Tag — status, eyebrows, code labels
+   ============================================================ */
+function Tag({ tone, children, solid = false, outline = false, mono = false }) {
+  const c = STATUS[tone] || STATUS.draft;
+  const style = solid
+    ? { background: c.solid, color: '#FFFFFF' }
+    : outline
+      ? { background: 'transparent', color: c.fg, boxShadow: `inset 0 0 0 1px ${c.fg}` }
+      : { background: c.bg, color: c.fg };
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      paddingTop: 2, paddingBottom: 2, paddingLeft: 7, paddingRight: 7,
+      borderRadius: 6,
+      fontSize: 11, fontWeight: 600,
+      letterSpacing: mono ? '0.02em' : 0,
+      fontFamily: mono ? "'JetBrains Mono', monospace" : 'inherit',
+      ...style,
+    }}>{children}</span>
+  );
+}
+
+/* CodeTag — for unit standard codes like "US 24354" */
+function CodeTag({ children, dark = false }) {
+  const { brand } = useBrand();
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      paddingTop: 2, paddingBottom: 2, paddingLeft: 6, paddingRight: 6,
+      borderRadius: 4, fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em',
+      background: dark ? 'rgba(255,255,255,0.14)' : NEUTRAL.line2,
+      color: dark ? '#FFFFFF' : NEUTRAL.ink2,
+    }}>{children}</span>
+  );
+}
+
+/* ============================================================
+   Avatar — initials with school colour, optional risk dot
+   ============================================================ */
+function PAvatar({ name, size = 40, risk = false, colour }) {
+  const { brand } = useBrand();
+  const initials = name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+  // Hash name to a stable hue
+  const h = name.split('').reduce((a, c) => (a + c.charCodeAt(0) * 31) % 360, 0);
+  const bg = colour || `oklch(0.92 0.04 ${h})`;
+  const fg = colour ? '#FFFFFF' : `oklch(0.35 0.08 ${h})`;
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <div style={{
+        width: size, height: size, borderRadius: 999,
+        background: bg, color: fg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: size * 0.36, fontWeight: 700,
+      }}>{initials}</div>
+      {risk && (
+        <div style={{
+          position: 'absolute', top: -2, right: -2,
+          width: 12, height: 12, borderRadius: 999,
+          background: STATUS.risk.solid,
+          border: '2px solid #FFFFFF',
+        }} />
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   ProgressBar — 1.5px tall, in brand primary
+   ============================================================ */
+function ProgressBar({ value, height = 4, track = NEUTRAL.line, fill, dark = false }) {
+  const { brand } = useBrand();
+  const f = fill || brand.primary;
+  return (
+    <div style={{
+      height, borderRadius: height / 2, overflow: 'hidden',
+      background: dark ? 'rgba(255,255,255,0.18)' : track,
+      width: '100%',
+    }}>
+      <div style={{
+        height: '100%', width: `${Math.min(100, Math.max(0, value))}%`,
+        background: f, borderRadius: 'inherit',
+        transition: 'width 0.3s',
+      }} />
+    </div>
+  );
+}
+
+/* ============================================================
+   PrimaryButton / SecondaryButton
+   ============================================================ */
+function PrimaryButton({ children, onClick, icon, trailing, fill, full = true, size = 'md' }) {
+  const { brand } = useBrand();
+  const bg = fill || brand.accent;
+  const padY = size === 'lg' ? 14 : size === 'sm' ? 8 : 11;
+  return (
+    <button onClick={onClick} style={{
+      width: full ? '100%' : 'auto',
+      paddingTop: padY, paddingBottom: padY,
+      paddingLeft: 18, paddingRight: 18,
+      background: bg, color: '#FFFFFF', border: 'none',
+      borderRadius: 10,
+      fontSize: size === 'lg' ? 15 : 14, fontWeight: 600,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      cursor: 'pointer',
+      boxShadow: '0 1px 2px rgba(15,20,25,0.06)',
+    }}>
+      {icon && <Icon name={icon} size={16} color="#FFFFFF" />}
+      {children}
+      {trailing && <Icon name={trailing} size={16} color="#FFFFFF" />}
+    </button>
+  );
+}
+
+function GhostButton({ children, onClick, icon, full = true }) {
+  return (
+    <button onClick={onClick} style={{
+      width: full ? '100%' : 'auto',
+      padding: '10px 16px',
+      background: '#FFFFFF', color: NEUTRAL.ink2, border: `1px solid ${NEUTRAL.line}`,
+      borderRadius: 10,
+      fontSize: 14, fontWeight: 600,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      cursor: 'pointer',
+    }}>
+      {icon && <Icon name={icon} size={16} color={NEUTRAL.ink2} />}
+      {children}
+    </button>
+  );
+}
+
+/* ============================================================
+   Bottom action bar — sticky at the bottom inside Phone
+   ============================================================ */
+function BottomBar({ children }) {
+  return (
+    <div style={{
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      padding: '12px 16px 22px',
+      background: 'rgba(255,255,255,0.96)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      borderTop: `1px solid ${NEUTRAL.line}`,
+      display: 'flex', gap: 8,
+      zIndex: 5,
+    }}>{children}</div>
+  );
+}
+
+/* ============================================================
+   Section header — within scroll content
+   ============================================================ */
+function SectionHeader({ title, action }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      paddingLeft: 4, paddingRight: 4, marginBottom: 8, marginTop: 4,
+    }}>
+      <div style={{ ...TYPE.eyebrow, color: NEUTRAL.mute }}>{title}</div>
+      {action}
+    </div>
+  );
+}
+
+/* ============================================================
+   InfoPill — used in dark headers (like the original JSX)
+   ============================================================ */
+function InfoPill({ label, value }) {
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.10)', borderRadius: 8,
+      padding: '6px 9px', minWidth: 0,
+    }}>
+      <div style={{ fontSize: 9.5, opacity: 0.7, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontSize: 11.5, fontWeight: 600, marginTop: 2,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>{value}</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   AnswerPills — Yes / Partial / Not Yet for the checksheet
+   ============================================================ */
+function AnswerPills({ value, onChange }) {
+  const opts = [
+    { v: 'yes',     label: 'Yes',      color: STATUS.pass.solid },
+    { v: 'partial', label: 'Partial',  color: STATUS.partial.solid },
+    { v: 'no',      label: 'Not Yet',  color: NEUTRAL.mute },
+  ];
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
+      {opts.map((o) => {
+        const active = value === o.v;
+        return (
+          <button key={o.v} onClick={() => onChange?.(active ? null : o.v)} style={{
+            paddingTop: 9, paddingBottom: 9,
+            borderRadius: 8, fontSize: 13, fontWeight: 600,
+            background: active ? o.color : NEUTRAL.bg,
+            color: active ? '#FFFFFF' : NEUTRAL.body,
+            border: `1px solid ${active ? o.color : 'transparent'}`,
+            cursor: 'pointer',
+          }}>{o.label}</button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ============================================================
+   SpeakerChip
+   ============================================================ */
+function SpeakerChip({ id, active, dark, onClick, disabled }) {
+  const { brand } = useBrand();
+  const speakers = {
+    adviser:  { label: 'Adviser',  icon: 'user',     color: brand.primary },
+    student:  { label: 'Student',  icon: 'hard-hat', color: brand.accent },
+    employer: { label: 'Employer', icon: 'users',    color: brand.navy },
+  };
+  const s = speakers[id];
+  return (
+    <button disabled={disabled} onClick={onClick} style={{
+      paddingTop: 8, paddingBottom: 8, paddingLeft: 8, paddingRight: 8,
+      borderRadius: 8,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+      fontSize: 12.5, fontWeight: 600,
+      background: active ? s.color : (dark ? 'rgba(255,255,255,0.10)' : NEUTRAL.bg),
+      color: active ? '#FFFFFF' : (dark ? '#FFFFFF' : NEUTRAL.body),
+      border: 'none', cursor: disabled ? 'default' : 'pointer',
+      opacity: disabled ? 0.55 : 1,
+      width: '100%',
+    }}>
+      <Icon name={s.icon} size={13} color={active ? '#FFFFFF' : (dark ? '#FFFFFF' : NEUTRAL.body)} />
+      {s.label}
+    </button>
+  );
+}
+
+/* ============================================================
+   Static waveform — for paused / completed clips
+   ============================================================ */
+function StaticWave({ bars = 32, height = 24, color, seed = 7 }) {
+  const { brand } = useBrand();
+  const c = color || brand.accent;
+  const arr = Array.from({ length: bars }).map((_, i) => {
+    const dist = Math.abs(i - bars / 2) / (bars / 2);
+    const base = Math.sin((i + seed) * 1.3) * 0.4 + 0.55;
+    return Math.max(0.18, base * (1 - dist * 0.35));
+  });
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height, gap: 2 }}>
+      {arr.map((v, i) => (
+        <div key={i} style={{
+          width: 2, height: `${v * 100}%`, borderRadius: 1, background: c,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+/* Animated waveform — for live recording. Height scales pseudo-randomly. */
+function LiveWave({ bars = 28, height = 32, paused = false }) {
+  const { brand } = useBrand();
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', height, gap: 2 }}>
+      {Array.from({ length: bars }).map((_, i) => {
+        const dist = Math.abs(i - bars / 2) / (bars / 2);
+        const delay = (i % 7) * 0.06;
+        const dur = 0.8 + (i % 5) * 0.1;
+        const max = (1 - dist * 0.4);
+        return (
+          <div key={i} style={{
+            width: 2, borderRadius: 1, background: brand.accent,
+            height: `${max * 100}%`,
+            transformOrigin: 'center',
+            animation: paused ? 'none' : `pxBar ${dur}s ${delay}s ease-in-out infinite`,
+            opacity: paused ? 0.3 : 1,
+          }} />
+        );
+      })}
+    </div>
+  );
+}
+
+/* ============================================================
+   TabBar — bottom navigation
+   ============================================================ */
+function ProviderTabBar({ active = 'home', onChange }) {
+  const { brand } = useBrand();
+  const tabs = [
+    { key: 'home',     label: 'Today',    icon: 'home' },
+    { key: 'caseload', label: 'Caseload', icon: 'users' },
+    { key: 'schedule', label: 'Schedule', icon: 'calendar' },
+    { key: 'evidence', label: 'Evidence', icon: 'archive' },
+    { key: 'profile',  label: 'You',      icon: 'user' },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      height: 76,
+      background: '#FFFFFF', borderTop: `1px solid ${NEUTRAL.line}`,
+      display: 'flex', alignItems: 'flex-start',
+      paddingTop: 8, paddingBottom: 22,
+      zIndex: 10,
+    }}>
+      {tabs.map(t => {
+        const isActive = t.key === active;
+        return (
+          <div key={t.key} onClick={() => onChange?.(t.key)} style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: 3, cursor: 'pointer',
+          }}>
+            <Icon name={t.icon} size={20} color={isActive ? brand.primary : NEUTRAL.mute2} strokeWidth={isActive ? 2.4 : 2} />
+            <div style={{
+              fontSize: 10, fontWeight: isActive ? 600 : 500,
+              color: isActive ? brand.primary : NEUTRAL.mute2,
+            }}>{t.label}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ============================================================
+   RiskFlag — small inline indicator
+   ============================================================ */
+function RiskFlag({ severity = 'med', label }) {
+  const styles = {
+    high:  { bg: STATUS.risk.bg, fg: STATUS.risk.fg, icon: 'alert-triangle' },
+    med:   { bg: STATUS.partial.bg, fg: STATUS.partial.fg, icon: 'alert-circle' },
+    info:  { bg: STATUS.sync.bg, fg: STATUS.sync.fg, icon: 'info' },
+  };
+  const s = styles[severity];
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '2px 6px', borderRadius: 6,
+      background: s.bg, color: s.fg,
+      fontSize: 10.5, fontWeight: 600,
+    }}>
+      <Icon name={s.icon} size={11} color={s.fg} strokeWidth={2.2} /> {label}
+    </span>
+  );
+}
+
+/* ============================================================
+   BrandWatermark — corner stamp showing the active provider on dark headers
+   ============================================================ */
+function BrandWatermark() {
+  const { brand } = useBrand();
+  return (
+    <div style={{
+      position: 'absolute', top: 8, right: 12,
+      fontSize: 9, fontWeight: 700, letterSpacing: '0.18em',
+      textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)',
+    }}>
+      {brand.name}
+    </div>
+  );
+}
+
+/* Initials helper */
+function initialsOf(name) {
+  return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+}
+
+function fmtDuration(secs) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+Object.assign(window, {
+  ProviderHeader, ProviderLogo, Card, ListRow, Tag, CodeTag, PAvatar,
+  ProgressBar, PrimaryButton, GhostButton, BottomBar, SectionHeader,
+  InfoPill, AnswerPills, SpeakerChip, StaticWave, LiveWave,
+  ProviderTabBar, RiskFlag, BrandWatermark, initialsOf, fmtDuration,
+});
+
+</script>
+<script type="text/babel" data-module="phone" data-presets="react">
+/* global React, StatusBar */
+/* Phone frame — 390×820 with iOS dynamic island. */
+
+function Phone({ children, statusDark = false, width = 390, height = 820, scale = 1, onClick, label }) {
+  const w = width, h = height;
+  return (
+    <div style={{
+      width: w * scale + 22 * scale,
+      height: h * scale + 22 * scale,
+      background: '#0d1829',
+      borderRadius: 56 * scale,
+      padding: 11 * scale,
+      boxShadow: '0 30px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)',
+      flexShrink: 0,
+    }} onClick={onClick}>
+      <div style={{
+        width: w * scale, height: h * scale, background: '#FFFFFF',
+        borderRadius: 46 * scale, overflow: 'hidden', position: 'relative',
+      }}>
+        <div style={{
+          width: w, height: h, position: 'relative',
+          transform: `scale(${scale})`, transformOrigin: 'top left',
+        }}>
+          <StatusBar dark={statusDark} />
+          <div style={{ width: '100%', height: '100%' }}>
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Tab bar shared by Home + future tabs */
+function TabBar({ active = 'home' }) {
+  const { t } = window.useT();
+  const tabs = [
+    { key: 'home',      label: t('home'),      icon: 'home' },
+    { key: 'diary',     label: t('diary'),     icon: 'book-open' },
+    { key: 'programme', label: t('programme'), icon: 'graduation-cap' },
+    { key: 'calendar',  label: t('calendar'),  icon: 'calendar' },
+    { key: 'profile',   label: t('profile'),   icon: 'user' },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      height: 78,
+      background: '#FFFFFF',
+      borderTop: '1px solid #E5E5E5',
+      display: 'flex', alignItems: 'flex-start',
+      paddingTop: 8, paddingBottom: 22,
+      zIndex: 10,
+    }}>
+      {tabs.map((tab) => {
+        const isActive = tab.key === active;
+        return (
+          <div key={tab.key} className="flex-1 flex flex-col items-center justify-start" style={{ gap: 4 }}>
+            <window.Icon name={tab.icon} size={22} color={isActive ? '#FA7927' : '#4A4A4A'} strokeWidth={isActive ? 2.4 : 2} />
+            <div style={{ fontSize: 10.5, fontWeight: isActive ? 600 : 500, color: isActive ? '#FA7927' : '#4A4A4A', lineHeight: 1.2 }}>{tab.label}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Header bar — used on most non-home tabs */
+function Header({ title, leading, trailing, dark }) {
+  return (
+    <div style={{
+      position: 'absolute', top: 44, left: 0, right: 0,
+      height: 52, paddingLeft: 16, paddingRight: 16,
+      display: 'flex', alignItems: 'center', gap: 8,
+      background: dark ? 'transparent' : '#FFFFFF',
+      borderBottom: dark ? 'none' : '1px solid #E5E5E5',
+      zIndex: 5,
+    }}>
+      <div style={{ width: 44, display: 'flex', alignItems: 'center' }}>{leading}</div>
+      <div style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: 600, color: dark ? '#FFFFFF' : '#1A1A1A' }}>{title}</div>
+      <div style={{ width: 44, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>{trailing}</div>
+    </div>
+  );
+}
+
+Object.assign(window, { Phone, TabBar, Header });
+
+</script>
+<script type="text/babel" data-module="home" data-presets="react">
+/* global React, Icon, useBrand, NEUTRAL, TYPE, STATUS, PROVIDERS,
+   ProviderHeader, ProviderLogo, Card, ListRow, Tag, CodeTag, PAvatar,
+   ProgressBar, PrimaryButton, GhostButton, BottomBar, SectionHeader,
+   InfoPill, RiskFlag, ProviderTabBar, initialsOf
+*/
+/* Home / Today screen */
+
+const { useState: hUseState } = React;
+
+/* ============================================================
+   Mock data — used across the app
+   ============================================================ */
+const ADVISER = {
+  name: 'Dan Te Whaiti',
+  firstName: 'Dan',
+  region: 'Canterbury',
+  caseloadCount: 24,
+};
+
+const TODAY = {
+  weekday: 'Tuesday',
+  date: '21 April 2026',
+  short: 'Tue 21 Apr',
+};
+
+const NEXT_VISIT = {
+  studentName: 'Te Ariki Parata',
+  initials: 'TP',
+  school: 'Lincoln High School',
+  employer: 'Ryman Construction',
+  course: 'L2 Safety',
+  code: 'US 24354',
+  startsAt: '10:30',
+  travelMin: 18,
+  driveFrom: 'Christchurch CBD',
+  address: '12 Park Tce, Cashmere',
+};
+
+const RISK_PREVIEW = [
+  { name: 'Jackson Patel',  school: 'Rolleston College',   reason: '12 days no activity' },
+  { name: 'Isla MacDonald', school: 'Burnside High School', reason: '21 days no activity' },
+];
+
+/* Bigger caseload, used by caseload + schedule screens */
+const CASELOAD = [
+  { id: 's1', name: 'Te Ariki Parata',   school: 'Lincoln High School',   employer: 'Ryman Construction',  course: 'L2 Safety', code: 'US 24354', progress: 78, last: '2 days ago', risk: false, nextVisit: 'Today 10:30' },
+  { id: 's2', name: 'Hemi Walker',       school: 'Cashmere High School',  employer: 'Fletcher Building',   course: 'L2 Safety', code: 'US 24354', progress: 45, last: '5 days ago', risk: false, nextVisit: 'Thu 12:00' },
+  { id: 's3', name: 'Ruby Thompson',     school: 'Lincoln High School',   employer: 'Naylor Love',         course: 'L2 Safety', code: 'US 24354', progress: 92, last: '1 day ago',  risk: false, nextVisit: '—' },
+  { id: 's4', name: 'Jackson Patel',     school: 'Rolleston College',     employer: 'Mike Greer Homes',    course: 'L2 Safety', code: 'US 24354', progress: 23, last: '12 days ago', risk: 'high', nextVisit: 'Wed 14:00' },
+  { id: 's5', name: 'Aria Campbell',     school: 'Burnside High School',  employer: 'Hawkins',             course: 'L2 Safety', code: 'US 24354', progress: 67, last: '3 days ago', risk: false, nextVisit: 'Fri 09:30' },
+  { id: 's6', name: 'Kauri Nikora',      school: 'Cashmere High School',  employer: 'PlaceMakers',         course: 'L2 Timber', code: 'US 24360', progress: 56, last: '4 days ago', risk: false, nextVisit: 'Mon 11:00' },
+  { id: 's7', name: 'Sophie Chen',       school: 'Lincoln High School',   employer: 'Mitre 10',            course: 'L2 Timber', code: 'US 24360', progress: 30, last: '8 days ago', risk: 'med',  nextVisit: '—' },
+  { id: 's8', name: 'Mason Taylor',      school: 'Rolleston College',     employer: 'Argyle Builders',     course: 'L1 H&S',    code: 'US 497',   progress: 88, last: '1 day ago',  risk: false, nextVisit: 'Thu 15:00' },
+  { id: 's9', name: 'Isla MacDonald',    school: 'Burnside High School',  employer: 'Scotty Construction', course: 'L1 H&S',    code: 'US 497',   progress: 12, last: '21 days ago', risk: 'high', nextVisit: 'Wed 10:00' },
+];
+
+const SCHEDULE_WEEK = [
+  { day: 'Mon', date: '21', items: [{ time: '10:30', dur: '45m', studentId: 's1', kind: 'visit' }, { time: '14:00', dur: '30m', studentId: 's6', kind: 'review' }] },
+  { day: 'Tue', date: '22', items: [{ time: '09:00', dur: '60m', studentId: 's5', kind: 'visit' }, { time: '11:30', dur: '45m', studentId: 's2', kind: 'visit' }] },
+  { day: 'Wed', date: '23', items: [{ time: '10:00', dur: '45m', studentId: 's9', kind: 'visit', flagged: true }, { time: '14:00', dur: '60m', studentId: 's4', kind: 'visit', flagged: true }] },
+  { day: 'Thu', date: '24', items: [{ time: '12:00', dur: '45m', studentId: 's2', kind: 'visit' }, { time: '15:00', dur: '30m', studentId: 's8', kind: 'review' }] },
+  { day: 'Fri', date: '25', items: [{ time: '09:30', dur: '60m', studentId: 's5', kind: 'visit' }] },
+];
+
+window.PROVIDER_DATA = { ADVISER, TODAY, NEXT_VISIT, RISK_PREVIEW, CASELOAD, SCHEDULE_WEEK };
+
+/* ============================================================
+   Home / Today screen
+   ============================================================ */
+function HomeScreen({ onConductAssessment }) {
+  const { brand } = useBrand();
+  return (
+    <div className="phone-scroll" style={{
+      width: '100%', height: '100%', overflowY: 'auto',
+      background: NEUTRAL.bg, paddingBottom: 90,
+    }}>
+      <ProviderHeader
+        flush
+        eyebrow="Training Adviser · Canterbury"
+        title={`Kia ora, ${ADVISER.firstName}`}
+        subtitle={`${TODAY.weekday}, ${TODAY.date}`}
+        showLogo
+        trailing={<div style={{
+          width: 36, height: 36, borderRadius: 999, background: 'rgba(255,255,255,0.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}><Icon name="bell" size={16} color="#FFFFFF" /></div>}
+      >
+        {/* Stats strip */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+          {[
+            { v: '24', l: 'Caseload' },
+            { v: '7',  l: 'This week' },
+            { v: '3',  l: 'Pending' },
+            { v: '2',  l: 'At risk', warn: true },
+          ].map((s, i) => (
+            <div key={i} style={{
+              background: 'rgba(255,255,255,0.10)', borderRadius: 8,
+              padding: '8px 6px', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 18, fontWeight: 700, ...TYPE.num,
+                color: s.warn ? brand.accent : '#FFFFFF',
+              }}>{s.v}</div>
+              <div style={{ fontSize: 9.5, opacity: 0.7, fontWeight: 600,
+                letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 1,
+              }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </ProviderHeader>
+
+      {/* Body */}
+      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+        {/* Next visit — premium card */}
+        <div>
+          <SectionHeader title="Next site visit" action={<span style={{ fontSize: 11, color: brand.primary, fontWeight: 600 }}>View schedule →</span>} />
+          <Card padding={0} style={{ overflow: 'hidden' }}>
+            <div style={{ padding: '12px 14px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Tag tone="sync" mono>{NEXT_VISIT.startsAt}</Tag>
+                <span style={{ ...TYPE.smallStrong, color: brand.accent }}>
+                  in 1h 12m
+                </span>
+                <span style={{ ...TYPE.small, color: NEUTRAL.mute, marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="navigation" size={11} color={NEUTRAL.mute} /> {NEXT_VISIT.travelMin}m drive
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <PAvatar name={NEXT_VISIT.studentName} size={44} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ ...TYPE.h2, color: NEUTRAL.ink }}>{NEXT_VISIT.studentName}</div>
+                  <div style={{ ...TYPE.small, color: NEUTRAL.mute, marginTop: 2,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {NEXT_VISIT.school} · {NEXT_VISIT.employer}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                <CodeTag>{NEXT_VISIT.code}</CodeTag>
+                <span style={{ ...TYPE.small, color: NEUTRAL.body }}>{NEXT_VISIT.course} · Site Induction</span>
+              </div>
+
+              <div style={{ marginTop: 10, padding: '8px 10px', background: NEUTRAL.bg, borderRadius: 8,
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <Icon name="map-pin" size={14} color={NEUTRAL.body} />
+                <div style={{ ...TYPE.small, color: NEUTRAL.body, flex: 1, minWidth: 0,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{NEXT_VISIT.address}</div>
+                <Icon name="external-link" size={13} color={brand.primary} />
+              </div>
+            </div>
+            <div style={{ padding: 10, paddingTop: 12, display: 'flex', gap: 6 }}>
+              <PrimaryButton onClick={onConductAssessment} icon="clipboard-check">Start assessment</PrimaryButton>
+              <button style={{
+                padding: '11px 12px', background: '#FFFFFF', border: `1px solid ${NEUTRAL.line}`,
+                borderRadius: 10, cursor: 'pointer',
+              }}><Icon name="phone" size={16} color={NEUTRAL.ink2} /></button>
+            </div>
+          </Card>
+        </div>
+
+        {/* Quick actions */}
+        <div>
+          <SectionHeader title="Quick actions" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+            <QuickAction icon="clipboard-check" label="Conduct assessment" sub="Course → Student → Template" onClick={onConductAssessment} accent />
+            <QuickAction icon="file-edit" label="Drafts" sub="3 unfinished" />
+            <QuickAction icon="archive" label="Evidence" sub="42 clips · 18 photos" />
+            <QuickAction icon="message-square" label="Messages" sub="2 unread" />
+          </div>
+        </div>
+
+        {/* At-risk preview */}
+        <div>
+          <SectionHeader title="Needs attention" action={<span style={{ fontSize: 11, color: brand.primary, fontWeight: 600 }}>2 students →</span>} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {RISK_PREVIEW.map((s) => (
+              <ListRow
+                key={s.name}
+                leading={<PAvatar name={s.name} size={36} risk />}
+                title={s.name}
+                subtitle={s.school}
+                meta={<RiskFlag severity="high" label={s.reason} />}
+                trailing={null}
+                dense
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Activity */}
+        <div>
+          <SectionHeader title="Today's progress" />
+          <Card>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ ...TYPE.smallStrong, color: NEUTRAL.ink }}>2 of 5 visits complete</div>
+              <span style={{ ...TYPE.small, color: NEUTRAL.mute, ...TYPE.num }}>40%</span>
+            </div>
+            <ProgressBar value={40} />
+            <div style={{ marginTop: 10, display: 'flex', gap: 12 }}>
+              {[
+                { l: 'Done', v: '2', c: STATUS.pass.solid },
+                { l: 'Now',  v: '1', c: brand.accent },
+                { l: 'Later', v: '2', c: NEUTRAL.mute },
+              ].map(s => (
+                <div key={s.l} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 999, background: s.c }} />
+                  <span style={{ ...TYPE.small, ...TYPE.num, color: NEUTRAL.body }}><strong style={{ color: NEUTRAL.ink }}>{s.v}</strong> {s.l}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      <ProviderTabBar active="home" />
+    </div>
+  );
+}
+
+function QuickAction({ icon, label, sub, accent, onClick }) {
+  const { brand } = useBrand();
+  return (
+    <button onClick={onClick} style={{
+      background: accent ? brand.primarySoft : '#FFFFFF',
+      border: 'none', textAlign: 'left',
+      borderRadius: 12, padding: 12,
+      boxShadow: '0 1px 2px rgba(15,20,25,0.04), 0 0 0 1px rgba(15,20,25,0.04)',
+      display: 'flex', flexDirection: 'column', gap: 8,
+      cursor: 'pointer',
+    }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: 8,
+        background: accent ? brand.primary : NEUTRAL.bg,
+        color: accent ? '#FFFFFF' : brand.primary,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name={icon} size={16} color={accent ? '#FFFFFF' : brand.primary} />
+      </div>
+      <div>
+        <div style={{ ...TYPE.smallStrong, color: NEUTRAL.ink }}>{label}</div>
+        <div style={{ ...TYPE.small, color: NEUTRAL.mute, fontSize: 11.5, marginTop: 1 }}>{sub}</div>
+      </div>
+    </button>
+  );
+}
+
+Object.assign(window, { HomeScreen, QuickAction });
+
+</script>
+<script type="text/babel" data-module="schedule" data-presets="react">
+/* global React, Icon, useBrand, NEUTRAL, TYPE, STATUS,
+   ProviderHeader, Card, Tag, CodeTag, PAvatar, ProviderTabBar,
+   PrimaryButton, SectionHeader
+*/
+
+const { useState: scUseState } = React;
+
+function ScheduleScreen({ view = 'week', onBack, onVisitClick }) {
+  const { brand } = useBrand();
+  const [tab, setTab] = scUseState(view);
+  const week = window.PROVIDER_DATA.SCHEDULE_WEEK;
+  const caseload = window.PROVIDER_DATA.CASELOAD;
+  const lookup = (id) => caseload.find(c => c.id === id);
+
+  return (
+    <div className="phone-scroll" style={{
+      width: '100%', height: '100%', overflowY: 'auto',
+      background: NEUTRAL.bg, paddingBottom: 90,
+    }}>
+      <ProviderHeader
+        flush
+        onBack={onBack}
+        eyebrow="Week of 21 Apr 2026"
+        title="Schedule"
+        subtitle="9 visits · 1h 18m total drive"
+        trailing={<button style={{
+          width: 36, height: 36, borderRadius: 999, background: 'rgba(255,255,255,0.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none',
+        }}><Icon name="plus" size={16} color="#FFFFFF" /></button>}
+      >
+        <div style={{
+          display: 'flex', gap: 4, background: 'rgba(255,255,255,0.10)',
+          padding: 3, borderRadius: 8,
+        }}>
+          {['week', 'day', 'month'].map(v => {
+            const active = tab === v;
+            return (
+              <button key={v} onClick={() => setTab(v)} style={{
+                flex: 1, padding: '6px 10px', borderRadius: 6,
+                background: active ? '#FFFFFF' : 'transparent',
+                color: active ? brand.navy : 'rgba(255,255,255,0.85)',
+                border: 'none', fontSize: 12, fontWeight: 600,
+                cursor: 'pointer', textTransform: 'capitalize',
+              }}>{v}</button>
+            );
+          })}
+        </div>
+      </ProviderHeader>
+
+      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {week.map((d, idx) => (
+          <div key={d.day}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8, paddingLeft: 4 }}>
+              <div style={{ ...TYPE.h2, color: NEUTRAL.ink }}>{d.day} {d.date}</div>
+              <div style={{ ...TYPE.small, color: NEUTRAL.mute }}>
+                {idx === 0 ? 'Today' : idx === 1 ? 'Tomorrow' : `April`}
+              </div>
+              <div style={{ flex: 1, height: 1, background: NEUTRAL.line, marginLeft: 4 }} />
+              <div style={{ ...TYPE.small, color: NEUTRAL.mute, ...TYPE.num }}>{d.items.length}</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {d.items.map((it, i) => {
+                const s = lookup(it.studentId);
+                return (
+                  <Card key={i} padding={0} style={{ overflow: 'hidden', display: 'flex' }} onClick={() => onVisitClick && onVisitClick(s, it)}>
+                    <div style={{
+                      width: 60, padding: '12px 8px', flexShrink: 0,
+                      background: it.flagged ? STATUS.risk.bg : brand.primarySoft,
+                      color: it.flagged ? STATUS.risk.fg : brand.primary,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, ...TYPE.num, letterSpacing: '-0.02em' }}>{it.time}</div>
+                      <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.75, marginTop: 1 }}>{it.dur}</div>
+                    </div>
+                    <div style={{ flex: 1, padding: '12px 12px', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div style={{ ...TYPE.bodyStrong, color: NEUTRAL.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
+                        {it.flagged && <RiskFlag severity="high" label="At risk" />}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...TYPE.small, color: NEUTRAL.mute, flexWrap: 'wrap' }}>
+                        <CodeTag>{s.code}</CodeTag>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.employer}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                        <span style={{ ...TYPE.small, color: NEUTRAL.body, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Icon name={it.kind === 'visit' ? 'map-pin' : 'video'} size={11} color={NEUTRAL.body} />
+                          {it.kind === 'visit' ? 'On-site' : 'Review call'}
+                        </span>
+                        <span style={{ ...TYPE.small, color: NEUTRAL.mute, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Icon name="navigation" size={11} color={NEUTRAL.mute} /> 18m
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <ProviderTabBar active="schedule" />
+    </div>
+  );
+}
+
+Object.assign(window, { ScheduleScreen });
+
+</script>
+<script type="text/babel" data-module="picks" data-presets="react">
+/* global React, Icon, useBrand, NEUTRAL, TYPE, STATUS,
+   ProviderHeader, Card, Tag, CodeTag, PAvatar, ProgressBar,
+   PrimaryButton, GhostButton, BottomBar, SectionHeader, ListRow, InfoPill,
+   BrandWatermark
+*/
+
+/* ============================================================
+   Step 1: Course pick
+   ============================================================ */
+function CoursePickScreen() {
+  const { brand } = useBrand();
+  const courses = [
+    { code: 'US 24354', title: 'L2 Safety',         sub: 'Safe working practices in BCATS', level: 2, credits: 4, n: 14 },
+    { code: 'US 24360', title: 'L2 Timber',         sub: 'Knowledge of materials in BCATS',  level: 2, credits: 3, n: 9 },
+    { code: 'US 497',   title: 'L1 Health & Safety', sub: 'Workplace H&S requirements',       level: 1, credits: 3, n: 22 },
+  ];
+  return (
+    <div className="phone-scroll" style={{
+      width: '100%', height: '100%', overflowY: 'auto',
+      background: NEUTRAL.bg, paddingBottom: 14,
+    }}>
+      <ProviderHeader flush onBack={() => {}}
+        step={1} totalSteps={3}
+        eyebrow="Step 1 of 3" title="Choose course"
+        subtitle="Which course is this assessment for?"
+      />
+      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {courses.map(c => (
+          <Card key={c.code} onClick={() => {}}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: brand.primarySoft, color: brand.primary,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}><Icon name="book-open" size={18} color={brand.primary} /></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <CodeTag>{c.code}</CodeTag>
+                  <span style={{ ...TYPE.small, color: NEUTRAL.mute, fontSize: 11 }}>L{c.level} · {c.credits} cr</span>
+                </div>
+                <div style={{ ...TYPE.bodyStrong, color: NEUTRAL.ink }}>{c.title}</div>
+                <div style={{ ...TYPE.small, color: NEUTRAL.mute, marginTop: 2, lineHeight: 1.4 }}>{c.sub}</div>
+                <div style={{ ...TYPE.small, color: NEUTRAL.mute, fontSize: 11, marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="users" size={11} color={NEUTRAL.mute} /> {c.n} students enrolled
+                </div>
+              </div>
+              <Icon name="chevron-right" size={16} color="#D1D5DB" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Step 2: Student pick
+   ============================================================ */
+function StudentPickScreen() {
+  const { brand } = useBrand();
+  const data = window.PROVIDER_DATA.CASELOAD.filter(s => s.code === 'US 24354');
+  return (
+    <div className="phone-scroll" style={{
+      width: '100%', height: '100%', overflowY: 'auto',
+      background: NEUTRAL.bg, paddingBottom: 14,
+    }}>
+      <ProviderHeader flush onBack={() => {}}
+        step={2} totalSteps={3}
+        eyebrow="US 24354 · L2 Safety"
+        title="Choose student"
+        subtitle="14 students enrolled"
+      >
+        <div style={{ position: 'relative' }}>
+          <Icon name="search" size={14} color="rgba(255,255,255,0.6)"
+            style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+          <input placeholder="Search…" style={{
+            width: '100%', paddingTop: 9, paddingBottom: 9, paddingLeft: 34, paddingRight: 12,
+            borderRadius: 9, border: 'none',
+            background: 'rgba(255,255,255,0.12)', color: '#FFFFFF', fontSize: 13,
+          }} />
+        </div>
+      </ProviderHeader>
+
+      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {data.map(s => (
+          <ListRow
+            key={s.id}
+            leading={<PAvatar name={s.name} size={40} risk={!!s.risk} />}
+            title={s.name}
+            subtitle={`${s.school} · ${s.employer}`}
+            sub2={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <ProgressBar value={s.progress} height={3} fill={
+                    s.progress >= 70 ? STATUS.pass.solid : s.progress >= 40 ? brand.accent : NEUTRAL.mute2
+                  } />
+                </div>
+                <span style={{ fontSize: 11, ...TYPE.num, color: NEUTRAL.mute }}>{s.progress}%</span>
+              </div>
+            }
+            meta={s.risk ? <Icon name="alert-circle" size={14} color={STATUS.risk.solid} /> : null}
+            onClick={() => {}}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Step 3: Assessment template pick
+   ============================================================ */
+function TemplatePickScreen() {
+  const { brand } = useBrand();
+  const s = window.PROVIDER_DATA.CASELOAD[0];
+  const templates = [
+    { id: 'site',   title: 'Site Induction Assessment', kind: 'verbal',      dur: 30, outcomes: 'Outcome 3 — PC 3.1–3.6', desc: 'Student inducts adviser on-site. Verbal walkthrough with checksheet.', recommended: true, built: true },
+    { id: 'obs',    title: 'Observation Checklist',     kind: 'observation', dur: 45, outcomes: 'Outcome 3 — PC 3.1–3.6', desc: '14-item practical observation. Adviser marks.' },
+    { id: 'know',   title: 'Knowledge Interview',       kind: 'verbal',      dur: 20, outcomes: 'Outcomes 1 & 2',         desc: 'Verbal Q&A covering legislation and H&S procedures.' },
+  ];
+  return (
+    <div className="phone-scroll" style={{
+      width: '100%', height: '100%', overflowY: 'auto',
+      background: NEUTRAL.bg, paddingBottom: 14,
+    }}>
+      <ProviderHeader flush onBack={() => {}}
+        step={3} totalSteps={3}
+        eyebrow={`${s.name} · ${s.code}`}
+        title="Choose assessment"
+      />
+      <div style={{ padding: '14px 14px 6px' }}>
+        <div style={{
+          padding: '10px 12px', borderRadius: 10,
+          background: brand.primarySoft, display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <PAvatar name={s.name} size={32} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ ...TYPE.smallStrong, color: brand.navy }}>{s.name}</div>
+            <div style={{ fontSize: 11, color: NEUTRAL.body, marginTop: 1 }}>{s.school} · {s.employer}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {templates.map(t => (
+          <Card key={t.id} onClick={() => {}}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, position: 'relative' }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: t.kind === 'verbal' ? brand.primarySoft : brand.accentSoft,
+                color: t.kind === 'verbal' ? brand.primary : brand.accent,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}><Icon name={t.kind === 'verbal' ? 'mic' : 'clipboard-check'} size={16}
+                color={t.kind === 'verbal' ? brand.primary : brand.accent} /></div>
+              <div style={{ flex: 1, minWidth: 0, paddingRight: t.recommended ? 70 : 0 }}>
+                <div style={{ ...TYPE.bodyStrong, color: NEUTRAL.ink, lineHeight: 1.3 }}>{t.title}</div>
+                <div style={{ ...TYPE.small, color: NEUTRAL.body, marginTop: 4, lineHeight: 1.45 }}>{t.desc}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, color: NEUTRAL.mute, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                    <Icon name="clock" size={11} color={NEUTRAL.mute} /> {t.dur}m
+                  </span>
+                  <span style={{ fontSize: 11, color: NEUTRAL.mute }}>{t.outcomes}</span>
+                </div>
+              </div>
+              {t.recommended && (
+                <span style={{
+                  position: 'absolute', top: 0, right: 0,
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  padding: '3px 7px', borderRadius: 5,
+                  background: brand.accentSoft, color: brand.accent,
+                }}>Recommended</span>
+              )}
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Assessment overview — template chosen, ready to start
+   ============================================================ */
+function AssessmentOverviewScreen({ progress = 0, onBack, onContinue }) {
+  const { brand } = useBrand();
+  const s = window.PROVIDER_DATA.CASELOAD[0];
+  const sections = [
+    { n: 1, title: 'Hazard Board',         items: 4, done: progress >= 1 ? 4 : 0 },
+    { n: 2, title: 'PPE — Current',        items: 2, done: progress >= 2 ? 2 : 0 },
+    { n: 3, title: 'Register Onsite',      items: 2, done: progress >= 3 ? 2 : 0 },
+    { n: 4, title: 'Site Walkthrough',     items: 3, done: progress >= 4 ? 1 : 0 },
+    { n: 5, title: 'Emergency',            items: 4, done: 0 },
+    { n: 6, title: 'Responsibilities',     items: 2, done: 0 },
+    { n: 7, title: 'Employer Verification', items: 2, done: 0 },
+  ];
+  const totalDone = sections.filter(x => x.done === x.items).length;
+  const overall = Math.round((totalDone / sections.length) * 100);
+
+  return (
+    <div className="phone-scroll" style={{
+      width: '100%', height: '100%', overflowY: 'auto',
+      background: NEUTRAL.bg, paddingBottom: 92,
+    }}>
+      <ProviderHeader flush onBack={onBack} eyebrow="US 24354 · 21 April 2026">
+        <BrandWatermark />
+        <div style={{ ...TYPE.d2, color: '#FFFFFF', marginTop: -4 }}>Site Induction Assessment</div>
+        <div style={{ fontSize: 12.5, opacity: 0.82, marginTop: 4, lineHeight: 1.45 }}>
+          Student inducts adviser on-site. Record checksheet, audio &amp; photo evidence.
+        </div>
+        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
+          <InfoPill label="Student" value={s.name} />
+          <InfoPill label="School" value={s.school} />
+          <InfoPill label="Employer" value={s.employer} />
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 11, opacity: 0.85 }}>{totalDone} of {sections.length} sections complete</span>
+            <span style={{ fontSize: 11, opacity: 0.85, ...TYPE.num }}>{overall}%</span>
+          </div>
+          <ProgressBar value={overall} dark fill={brand.accent} />
+        </div>
+      </ProviderHeader>
+
+      <div style={{ padding: 14 }}>
+        <SectionHeader title="Checksheet" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {sections.map(sec => {
+            const complete = sec.done === sec.items;
+            const partial = sec.done > 0 && sec.done < sec.items;
+            return (
+              <Card key={sec.n} onClick={() => {}}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 9,
+                    background: complete ? brand.primary : partial ? brand.primarySoft : NEUTRAL.bg,
+                    color: complete ? '#FFFFFF' : brand.navy,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 700, fontSize: 14,
+                  }}>{complete ? <Icon name="check" size={16} color="#FFFFFF" strokeWidth={3} /> : sec.n}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ ...TYPE.bodyStrong, color: NEUTRAL.ink }}>{sec.title}</div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 3 }}>
+                      <span style={{ fontSize: 11, color: NEUTRAL.mute, ...TYPE.num }}>{sec.done}/{sec.items} items</span>
+                      {complete && <span style={{ fontSize: 11, color: STATUS.pass.fg, fontWeight: 600 }}>Complete</span>}
+                      {partial && <span style={{ fontSize: 11, color: brand.accent, fontWeight: 600 }}>In progress</span>}
+                    </div>
+                  </div>
+                  <Icon name="chevron-right" size={16} color="#D1D5DB" />
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      <BottomBar>
+        <PrimaryButton onClick={onContinue} trailing="chevron-right">Set location & start</PrimaryButton>
+      </BottomBar>
+    </div>
+  );
+}
+
+Object.assign(window, {
+  CoursePickScreen, StudentPickScreen, TemplatePickScreen, AssessmentOverviewScreen,
+});
+
+</script>
+<script type="text/babel" data-module="address" data-presets="react">
+/* global React, Icon, useBrand, NEUTRAL, TYPE, STATUS,
+   ProviderHeader, Card, Tag, CodeTag, PAvatar,
+   PrimaryButton, GhostButton, BottomBar, SectionHeader, InfoPill, BrandWatermark
+*/
+
+const { useState: asUseState } = React;
+
+/* ============================================================
+   AddressSetScreen — picked at the start of an assessment
+   Three states: prefill (employer site) | new (manual+geo) | confirmed
+   ============================================================ */
+function AddressSetScreen({ state = 'prefill', onBack, onContinue }) {
+  const { brand } = useBrand();
+  const s = window.PROVIDER_DATA.CASELOAD[0];
+
+  return (
+    <div className="phone-scroll" style={{
+      width: '100%', height: '100%', overflowY: 'auto',
+      background: NEUTRAL.bg, paddingBottom: 92,
+    }}>
+      <ProviderHeader flush onBack={onBack} eyebrow="Step 1 of 4 · Set location"
+        title="Where is this assessment?"
+      >
+        <div style={{ fontSize: 12.5, opacity: 0.82, marginTop: 4, lineHeight: 1.45 }}>
+          The site address is stamped on every piece of evidence and the final report.
+        </div>
+      </ProviderHeader>
+
+      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Toggle row */}
+        <div style={{
+          display: 'flex', gap: 6, padding: 4, borderRadius: 10,
+          background: '#FFFFFF', border: `1px solid ${NEUTRAL.line2}`,
+        }}>
+          {[
+            { id: 'prefill', label: "Employer's site", icon: 'briefcase' },
+            { id: 'new',     label: 'Add new address', icon: 'map-pin' },
+          ].map(t => {
+            const active = (state === 'prefill' && t.id === 'prefill')
+                        || (state !== 'prefill' && t.id === 'new');
+            return (
+              <button key={t.id} style={{
+                flex: 1, padding: '8px 10px', borderRadius: 7, border: 'none',
+                background: active ? brand.navy : 'transparent',
+                color: active ? '#FFFFFF' : NEUTRAL.body,
+                fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}>
+                <Icon name={t.icon} size={13} color={active ? '#FFFFFF' : NEUTRAL.body} />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {state === 'prefill' && (
+          <Card padding={0}>
+            <div style={{
+              padding: '14px 14px 10px', borderBottom: `1px solid ${NEUTRAL.line2}`,
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 9, background: brand.primarySoft,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}><Icon name="briefcase" size={16} color={brand.primary} /></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ ...TYPE.bodyStrong, color: NEUTRAL.ink }}>{s.employer}</div>
+                <div style={{ fontSize: 11.5, color: NEUTRAL.mute, marginTop: 1 }}>From {s.name}'s record</div>
+              </div>
+              <Tag tone="pass">Verified</Tag>
+            </div>
+            <div style={{ padding: 14 }}>
+              <AddressLine icon="map-pin" main="42 Pacific Way, Bromley" sub="Christchurch 8062" />
+              <AddressLine icon="user" main="Aaron Hopkirk" sub="Site supervisor · 027 491 0102" />
+              <AddressLine icon="hash" main="Job · NB-2026-0418" sub="Anchor Build · New build" last />
+            </div>
+            {/* Mini map */}
+            <div style={{
+              height: 130, borderTop: `1px solid ${NEUTRAL.line2}`,
+              background: `
+                linear-gradient(180deg, oklch(0.92 0.03 240) 0%, oklch(0.86 0.04 250) 100%)`,
+              position: 'relative', overflow: 'hidden',
+            }}>
+              {/* fake roads */}
+              <svg width="100%" height="100%" viewBox="0 0 360 130" preserveAspectRatio="none"
+                style={{ position: 'absolute', inset: 0 }}>
+                <path d="M0 80 Q120 70 200 90 T 360 50" stroke="#FFFFFF" strokeWidth="6" fill="none" opacity="0.85" />
+                <path d="M40 0 L 80 130" stroke="#FFFFFF" strokeWidth="3" fill="none" opacity="0.7" />
+                <path d="M260 0 L 290 130" stroke="#FFFFFF" strokeWidth="3" fill="none" opacity="0.7" />
+                <rect x="120" y="20" width="50" height="32" fill="#FFFFFF" opacity="0.4" rx="2" />
+                <rect x="220" y="60" width="60" height="36" fill="#FFFFFF" opacity="0.4" rx="2" />
+              </svg>
+              {/* Pin */}
+              <div style={{
+                position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -100%)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+              }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 999, background: brand.accent,
+                  border: '3px solid #FFFFFF',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}><Icon name="briefcase" size={12} color="#FFFFFF" /></div>
+                <div style={{
+                  width: 0, height: 0, borderLeft: '6px solid transparent',
+                  borderRight: '6px solid transparent', borderTop: `8px solid ${brand.accent}`,
+                  marginTop: -2,
+                }} />
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {state === 'new' && (
+          <Card padding={14}>
+            <div style={{ ...TYPE.eyebrow, color: NEUTRAL.mute, marginBottom: 10 }}>New site address</div>
+            <Field label="Address" value="156 Lichfield St" placeholder="Start typing…" />
+            <Field label="Suburb / city" value="Christchurch Central" />
+            <Field label="Postcode" value="8011" half />
+            <Field label="Site contact (optional)" value="" placeholder="Name & phone" />
+
+            {/* Geo button */}
+            <button style={{
+              marginTop: 8, width: '100%', padding: '11px 12px', borderRadius: 9,
+              background: brand.primarySoft, border: `1px dashed ${brand.primary}`,
+              color: brand.navy, fontWeight: 600, fontSize: 13.5,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              cursor: 'pointer',
+            }}>
+              <Icon name="navigation" size={14} color={brand.primary} />
+              Use my current location
+            </button>
+
+            {/* Geo result row */}
+            <div style={{
+              marginTop: 10, padding: '8px 10px', borderRadius: 8,
+              background: STATUS.pass.bg, color: STATUS.pass.fg,
+              display: 'flex', alignItems: 'center', gap: 8, fontSize: 12,
+            }}>
+              <Icon name="check-circle" size={13} color={STATUS.pass.solid} />
+              <span style={{ flex: 1 }}>Location captured · ±8 m accuracy</span>
+              <span style={{ ...TYPE.num, fontSize: 10.5, opacity: 0.8 }}>−43.5331, 172.6363</span>
+            </div>
+
+            {/* Save toggle */}
+            <label style={{
+              marginTop: 10, display: 'flex', alignItems: 'center', gap: 8,
+              fontSize: 12, color: NEUTRAL.body, cursor: 'pointer',
+            }}>
+              <span style={{
+                width: 32, height: 18, borderRadius: 999, background: brand.primary,
+                position: 'relative', flexShrink: 0,
+              }}>
+                <span style={{
+                  position: 'absolute', right: 2, top: 2, width: 14, height: 14,
+                  borderRadius: 999, background: '#FFFFFF',
+                }} />
+              </span>
+              Save to {s.employer}'s sites
+            </label>
+          </Card>
+        )}
+
+        {/* When */}
+        <Card padding={14}>
+          <div style={{ ...TYPE.eyebrow, color: NEUTRAL.mute, marginBottom: 8 }}>When</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Icon name="clock" size={14} color={NEUTRAL.body} />
+            <span style={{ ...TYPE.body, color: NEUTRAL.ink, flex: 1 }}>Now · Tue 21 Apr · 11:08</span>
+            <button style={{
+              fontSize: 11.5, fontWeight: 600, color: brand.primary,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+            }}>Change</button>
+          </div>
+        </Card>
+      </div>
+
+      <BottomBar>
+        <PrimaryButton onClick={onContinue} trailing="chevron-right">Continue to assessment</PrimaryButton>
+      </BottomBar>
+    </div>
+  );
+}
+
+function AddressLine({ icon, main, sub, last }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 10,
+      paddingBottom: last ? 0 : 10, marginBottom: last ? 0 : 10,
+      borderBottom: last ? 'none' : `1px solid ${NEUTRAL.line2}`,
+    }}>
+      <Icon name={icon} size={14} color={NEUTRAL.mute} style={{ marginTop: 2 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ ...TYPE.smallStrong, color: NEUTRAL.ink }}>{main}</div>
+        <div style={{ fontSize: 11.5, color: NEUTRAL.mute, marginTop: 1 }}>{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value, placeholder, half }) {
+  return (
+    <div style={{ marginBottom: 10, width: half ? '60%' : '100%' }}>
+      <div style={{ fontSize: 10.5, fontWeight: 600, color: NEUTRAL.mute,
+        letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 4,
+      }}>{label}</div>
+      <input value={value} placeholder={placeholder} readOnly style={{
+        width: '100%', padding: '9px 11px', borderRadius: 8,
+        background: NEUTRAL.bg, border: `1px solid ${NEUTRAL.line}`,
+        fontSize: 13.5, color: value ? NEUTRAL.ink : NEUTRAL.mute2,
+        boxSizing: 'border-box',
+      }} />
+    </div>
+  );
+}
+
+/* ============================================================
+   FeedbackScreen — at the end of an assessment, before submit
+   Captures: outcome confirmation, comments to student, follow-up actions
+   ============================================================ */
+function FeedbackScreen({ onBack, onSubmit }) {
+  const { brand } = useBrand();
+  const s = window.PROVIDER_DATA.CASELOAD[0];
+
+  return (
+    <div className="phone-scroll" style={{
+      width: '100%', height: '100%', overflowY: 'auto',
+      background: NEUTRAL.bg, paddingBottom: 92,
+    }}>
+      <ProviderHeader flush onBack={onBack} eyebrow="Step 3 of 4 · Feedback"
+        title="Wrap up & next steps"
+      >
+        <div style={{ fontSize: 12.5, opacity: 0.82, marginTop: 4 }}>
+          What you write here is sent to the student and their school.
+        </div>
+      </ProviderHeader>
+
+      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Outcome strip */}
+        <Card padding={14}>
+          <div style={{ ...TYPE.eyebrow, color: NEUTRAL.mute, marginBottom: 8 }}>Overall outcome</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[
+              { id: 'pass', label: 'Achieved', tone: STATUS.pass, icon: 'check-circle' },
+              { id: 'partial', label: 'Partial', tone: STATUS.partial, icon: 'alert-circle' },
+              { id: 'noyet', label: 'Not yet', tone: STATUS.risk, icon: 'x-circle' },
+            ].map(o => {
+              const active = o.id === 'pass';
+              return (
+                <button key={o.id} style={{
+                  flex: 1, padding: '10px 6px', borderRadius: 9,
+                  background: active ? o.tone.bg : '#FFFFFF',
+                  border: `2px solid ${active ? o.tone.solid : NEUTRAL.line2}`,
+                  cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                }}>
+                  <Icon name={o.icon} size={16} color={active ? o.tone.solid : NEUTRAL.mute} />
+                  <span style={{ fontSize: 12, fontWeight: 700,
+                    color: active ? o.tone.fg : NEUTRAL.body,
+                  }}>{o.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+
+        {/* Comments to student */}
+        <Card padding={14}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ ...TYPE.eyebrow, color: NEUTRAL.mute }}>Comments for {s.name.split(' ')[0]}</div>
+            <button style={{
+              fontSize: 11, fontWeight: 600, color: brand.primary,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}>
+              <Icon name="mic" size={11} color={brand.primary} />
+              Voice note
+            </button>
+          </div>
+          <div style={{
+            padding: 10, borderRadius: 8, background: NEUTRAL.bg,
+            border: `1px solid ${NEUTRAL.line2}`, fontSize: 13, color: NEUTRAL.ink,
+            lineHeight: 1.5, minHeight: 80,
+          }}>
+            Strong walkthrough today, Te Ariki. You named the hazards confidently and the controls section was on-point. For next visit, focus on the emergency procedures — read through Anchor Build's site-specific evac plan before we meet again.
+          </div>
+          <div style={{ marginTop: 6, fontSize: 10.5, color: NEUTRAL.mute, textAlign: 'right' }}>
+            218 / 600
+          </div>
+        </Card>
+
+        {/* Follow-up actions */}
+        <div>
+          <SectionHeader title="Follow-up actions" action={
+            <button style={{ fontSize: 11.5, fontWeight: 600, color: brand.primary,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+            }}>+ Add</button>
+          } />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <FollowUp who="student" label="Re-read emergency procedures section in BCITO handbook"
+              by="Before next visit" checked />
+            <FollowUp who="adviser" label="Schedule re-check on Section 5 (Emergency)"
+              by="Within 14 days" checked />
+            <FollowUp who="employer" label="Confirm site-specific evac plan is signed off"
+              by="Within 7 days" />
+          </div>
+        </div>
+
+        {/* Recipients */}
+        <Card padding={14}>
+          <div style={{ ...TYPE.eyebrow, color: NEUTRAL.mute, marginBottom: 10 }}>
+            Send report to
+          </div>
+          <Recipient name={s.name} role="Student" email="t.parata@hagley.school.nz" checked />
+          <Recipient name={s.school} role="School pastoral lead" email="vocations@hagley.school.nz" checked />
+          <Recipient name={s.employer} role="Employer" email="aaron@anchorbuild.co.nz" checked />
+          <Recipient name="WorkX archive" role="Stored on platform" email="auto" checked locked />
+        </Card>
+      </div>
+
+      <BottomBar>
+        <button style={{
+          padding: '11px 14px', background: '#FFFFFF', border: `1px solid ${NEUTRAL.line}`,
+          borderRadius: 10, fontSize: 13, fontWeight: 600, color: NEUTRAL.ink2, cursor: 'pointer',
+        }}>Preview report</button>
+        <PrimaryButton onClick={onSubmit} icon="send">Submit & send</PrimaryButton>
+      </BottomBar>
+    </div>
+  );
+}
+
+function FollowUp({ who, label, by, checked }) {
+  const { brand } = useBrand();
+  const colors = {
+    student:  { bg: brand.accentSoft,  fg: brand.accent,  label: 'Student' },
+    adviser:  { bg: brand.primarySoft, fg: brand.primary, label: 'You' },
+    employer: { bg: NEUTRAL.bg,        fg: brand.navy,    label: 'Employer' },
+  };
+  const c = colors[who];
+  return (
+    <Card padding={12}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        <div style={{
+          width: 18, height: 18, borderRadius: 5, marginTop: 1, flexShrink: 0,
+          background: checked ? brand.primary : '#FFFFFF',
+          border: `1.5px solid ${checked ? brand.primary : NEUTRAL.line}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {checked && <Icon name="check" size={11} color="#FFFFFF" strokeWidth={3} />}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+            <span style={{
+              fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+              padding: '1px 6px', borderRadius: 4, background: c.bg, color: c.fg,
+            }}>{c.label}</span>
+            <span style={{ fontSize: 10.5, color: NEUTRAL.mute, ...TYPE.num }}>{by}</span>
+          </div>
+          <div style={{ ...TYPE.small, color: NEUTRAL.ink, lineHeight: 1.45 }}>{label}</div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function Recipient({ name, role, email, checked, locked }) {
+  const { brand } = useBrand();
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '8px 0',
+      borderBottom: `1px solid ${NEUTRAL.line2}`,
+    }}>
+      <PAvatar name={name} size={32} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ ...TYPE.smallStrong, color: NEUTRAL.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+        <div style={{ fontSize: 10.5, color: NEUTRAL.mute, marginTop: 1 }}>
+          {role}{email !== 'auto' ? ` · ${email}` : ''}
+        </div>
+      </div>
+      <div style={{
+        width: 32, height: 18, borderRadius: 999,
+        background: checked ? brand.primary : NEUTRAL.line,
+        opacity: locked ? 0.7 : 1, position: 'relative', flexShrink: 0,
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, [checked ? 'right' : 'left']: 2,
+          width: 14, height: 14, borderRadius: 999, background: '#FFFFFF',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   ReportScreen — branded PDF preview, with two states
+   preview = before sending · sent = confirmation + delivery list
+   ============================================================ */
+function ReportScreen({ state = 'preview', onBack }) {
+  const { brand } = useBrand();
+  const s = window.PROVIDER_DATA.CASELOAD[0];
+
+  return (
+    <div className="phone-scroll" style={{
+      width: '100%', height: '100%', overflowY: 'auto',
+      background: state === 'sent' ? NEUTRAL.bg : '#E8EAEE',
+      paddingBottom: 92,
+    }}>
+      <ProviderHeader flush onBack={onBack}
+        eyebrow={state === 'sent' ? 'Sent · 21 Apr 11:42' : 'Report preview'}
+        title={state === 'sent' ? 'Report delivered' : 'Post-assessment report'}
+      >
+        {state === 'sent' && (
+          <div style={{
+            marginTop: 12, padding: '10px 12px', borderRadius: 9,
+            background: 'rgba(255,255,255,0.14)',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <Icon name="check-circle" size={18} color="#FFFFFF" />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600 }}>3 recipients · WorkX archive</div>
+              <div style={{ fontSize: 11, opacity: 0.85, marginTop: 1 }}>
+                PDF · 4 pages · 2.1 MB
+              </div>
+            </div>
+          </div>
+        )}
+      </ProviderHeader>
+
+      {state === 'sent' && <DeliveryList />}
+
+      {/* PDF preview "page" */}
+      <div style={{ padding: '16px 14px 0 14px' }}>
+        <div style={{
+          background: '#FFFFFF', borderRadius: 6,
+          boxShadow: '0 8px 22px rgba(15,20,25,0.12), 0 1px 3px rgba(15,20,25,0.06)',
+          overflow: 'hidden',
+        }}>
+          {/* Branded ribbon */}
+          <div style={{
+            background: `linear-gradient(135deg, ${brand.headerGradient[0]} 0%, ${brand.headerGradient[1]} 100%)`,
+            padding: '14px 16px 18px', color: '#FFFFFF',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{
+                padding: '4px 9px', borderRadius: 5, background: brand.accent,
+                fontSize: 12, fontWeight: 800, color: '#FFFFFF',
+              }}>{brand.logoText}</div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 8.5, opacity: 0.7, fontWeight: 600,
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                }}>Report ID</div>
+                <div style={{ fontSize: 11, fontWeight: 600, ...TYPE.num }}>WX-2026-04-21-0418</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 9.5, fontWeight: 700,
+              letterSpacing: '0.16em', textTransform: 'uppercase', opacity: 0.7,
+            }}>Post-assessment report</div>
+            <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, letterSpacing: '-0.01em' }}>
+              US 24354 · Site Induction
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>
+              21 April 2026 · Anchor Build · Christchurch
+            </div>
+          </div>
+
+          {/* Body — A4-ish proportions inside phone */}
+          <div style={{ padding: '14px 16px', fontSize: 10.5, color: NEUTRAL.ink, lineHeight: 1.5 }}>
+            {/* Outcome banner */}
+            <div style={{
+              padding: '10px 12px', borderRadius: 8, background: STATUS.pass.bg,
+              borderLeft: `3px solid ${STATUS.pass.solid}`,
+              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
+            }}>
+              <Icon name="award" size={16} color={STATUS.pass.solid} />
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: STATUS.pass.fg }}>Achieved</div>
+                <div style={{ fontSize: 9.5, color: STATUS.pass.fg, opacity: 0.8 }}>
+                  19 of 20 items met · 1 partial · queued for NZQA moderation
+                </div>
+              </div>
+            </div>
+
+            {/* Two-col meta */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+              <RptMeta label="Student" v={s.name} sub={s.school} />
+              <RptMeta label="Adviser" v="Dan Te Whaiti" sub="BCITO Canterbury" />
+              <RptMeta label="Employer" v={s.employer} sub="Aaron Hopkirk · supervisor" />
+              <RptMeta label="Site" v="42 Pacific Way, Bromley" sub="−43.5331, 172.6363" />
+            </div>
+
+            {/* Section breakdown — compact */}
+            <div style={{ ...TYPE.eyebrow, fontSize: 9, color: NEUTRAL.mute, marginBottom: 6 }}>
+              Section outcomes
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+              {[
+                { n: 1, t: 'Hazard Board',         o: 'pass' },
+                { n: 2, t: 'PPE — Current',        o: 'pass' },
+                { n: 3, t: 'Register Onsite',      o: 'partial' },
+                { n: 4, t: 'Site Walkthrough',     o: 'pass' },
+                { n: 5, t: 'Emergency',            o: 'pass' },
+                { n: 6, t: 'Responsibilities',     o: 'pass' },
+                { n: 7, t: 'Verification',         o: 'pass' },
+              ].map(r => {
+                const tone = r.o === 'pass' ? STATUS.pass : STATUS.partial;
+                return (
+                  <div key={r.n} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '5px 0', borderBottom: `1px solid ${NEUTRAL.line2}`,
+                  }}>
+                    <span style={{
+                      width: 18, height: 18, borderRadius: 4, background: brand.primarySoft,
+                      color: brand.navy, fontSize: 9.5, fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{r.n}</span>
+                    <span style={{ flex: 1, fontSize: 10, color: NEUTRAL.ink }}>{r.t}</span>
+                    <span style={{
+                      fontSize: 8.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                      padding: '2px 6px', borderRadius: 3, background: tone.bg, color: tone.fg,
+                    }}>{r.o === 'pass' ? 'Met' : 'Partial'}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Adviser comment */}
+            <div style={{ ...TYPE.eyebrow, fontSize: 9, color: NEUTRAL.mute, marginBottom: 6 }}>
+              Adviser comments
+            </div>
+            <div style={{
+              padding: 9, borderRadius: 6, background: NEUTRAL.bg,
+              fontSize: 10, color: NEUTRAL.ink, lineHeight: 1.5, marginBottom: 12,
+              fontStyle: 'italic',
+            }}>
+              "Strong walkthrough today, Te Ariki. You named the hazards confidently and the controls section was on-point. For next visit, focus on the emergency procedures — read through Anchor Build's site-specific evac plan before we meet again."
+            </div>
+
+            {/* Evidence summary */}
+            <div style={{ ...TYPE.eyebrow, fontSize: 9, color: NEUTRAL.mute, marginBottom: 6 }}>
+              Evidence captured
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+              <RptEv icon="mic" v="7" l="audio" t="14:32" />
+              <RptEv icon="camera" v="9" l="photos" />
+              <RptEv icon="file-text" v="4" l="notes" />
+            </div>
+
+            {/* Follow-ups */}
+            <div style={{ ...TYPE.eyebrow, fontSize: 9, color: NEUTRAL.mute, marginBottom: 6 }}>
+              Follow-up actions
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 12 }}>
+              <RptFollow who="Te Ariki" t="Re-read emergency procedures section before next visit" />
+              <RptFollow who="Adviser"  t="Schedule re-check on Section 5 within 14 days" />
+              <RptFollow who="Anchor Build" t="Confirm site-specific evac plan is signed off (7 days)" />
+            </div>
+
+            {/* Sign-off */}
+            <div style={{
+              marginTop: 14, paddingTop: 10, borderTop: `1px solid ${NEUTRAL.line}`,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+            }}>
+              <div>
+                <div style={{ fontSize: 14, fontFamily: "'Caveat', cursive", color: brand.navy, fontStyle: 'italic', fontWeight: 700 }}>Dan Te Whaiti</div>
+                <div style={{ fontSize: 8.5, color: NEUTRAL.mute, marginTop: 2 }}>Adviser sign-off · 21 Apr 11:42</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 8.5, color: NEUTRAL.mute }}>Page 1 of 4</div>
+                <div style={{ fontSize: 8, color: NEUTRAL.mute2, marginTop: 2 }}>workx.co.nz/r/WX-0418</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          textAlign: 'center', fontSize: 10.5, color: NEUTRAL.mute2,
+          marginTop: 10, fontWeight: 500,
+        }}>
+          {state === 'sent' ? 'Tap to scroll · pages 2–4 contain evidence detail'
+            : 'Preview · 4 pages including evidence appendix'}
+        </div>
+      </div>
+
+      <BottomBar>
+        {state === 'preview' ? (
+          <>
+            <button style={{
+              padding: '11px 14px', background: '#FFFFFF', border: `1px solid ${NEUTRAL.line}`,
+              borderRadius: 10, cursor: 'pointer',
+            }}><Icon name="edit-2" size={16} color={NEUTRAL.ink2} /></button>
+            <PrimaryButton icon="send">Send to all recipients</PrimaryButton>
+          </>
+        ) : (
+          <>
+            <button style={{
+              padding: '11px 14px', background: '#FFFFFF', border: `1px solid ${NEUTRAL.line}`,
+              borderRadius: 10, cursor: 'pointer',
+            }}><Icon name="share-2" size={16} color={NEUTRAL.ink2} /></button>
+            <PrimaryButton icon="download" fill={brand.primary}>Download PDF</PrimaryButton>
+          </>
+        )}
+      </BottomBar>
+    </div>
+  );
+}
+
+function DeliveryList() {
+  const { brand } = useBrand();
+  const items = [
+    { who: 'Te Ariki Parata', email: 't.parata@hagley.school.nz', t: '11:42', state: 'delivered' },
+    { who: 'Hagley College',  email: 'vocations@hagley.school.nz', t: '11:42', state: 'delivered' },
+    { who: 'Anchor Build',    email: 'aaron@anchorbuild.co.nz',    t: '11:43', state: 'delivered' },
+    { who: 'WorkX archive',   email: 'Stored on platform',          t: '11:42', state: 'archived' },
+  ];
+  return (
+    <div style={{ background: '#FFFFFF', borderBottom: `1px solid ${NEUTRAL.line2}` }}>
+      {items.map((it, i) => (
+        <div key={i} style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 14px',
+          borderTop: i === 0 ? 'none' : `1px solid ${NEUTRAL.line2}`,
+        }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 999,
+            background: it.state === 'archived' ? brand.primarySoft : STATUS.pass.bg,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Icon name={it.state === 'archived' ? 'archive' : 'check'}
+              size={13} color={it.state === 'archived' ? brand.primary : STATUS.pass.solid}
+              strokeWidth={2.5} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ ...TYPE.smallStrong, color: NEUTRAL.ink }}>{it.who}</div>
+            <div style={{ fontSize: 11, color: NEUTRAL.mute, marginTop: 1,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{it.email}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 10.5, color: NEUTRAL.mute, ...TYPE.num }}>{it.t}</div>
+            <div style={{ fontSize: 9.5, fontWeight: 700, color: STATUS.pass.solid,
+              letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 1,
+            }}>{it.state === 'archived' ? 'Stored' : 'Delivered'}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RptMeta({ label, v, sub }) {
+  return (
+    <div>
+      <div style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.08em',
+        textTransform: 'uppercase', color: NEUTRAL.mute,
+      }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: NEUTRAL.ink, marginTop: 2 }}>{v}</div>
+      <div style={{ fontSize: 9.5, color: NEUTRAL.mute }}>{sub}</div>
+    </div>
+  );
+}
+
+function RptEv({ icon, v, l, t }) {
+  const { brand } = useBrand();
+  return (
+    <div style={{
+      flex: 1, padding: 8, borderRadius: 6, background: NEUTRAL.bg,
+      display: 'flex', alignItems: 'center', gap: 6,
+    }}>
+      <Icon name={icon} size={12} color={brand.primary} />
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: NEUTRAL.ink, ...TYPE.num }}>{v}</div>
+        <div style={{ fontSize: 8.5, color: NEUTRAL.mute }}>{l}{t ? ` · ${t}` : ''}</div>
+      </div>
+    </div>
+  );
+}
+
+function RptFollow({ who, t }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 10, color: NEUTRAL.body, lineHeight: 1.5 }}>
+      <Icon name="check-square" size={11} color={NEUTRAL.mute} style={{ marginTop: 2, flexShrink: 0 }} />
+      <span><strong style={{ color: NEUTRAL.ink }}>{who}:</strong> {t}</span>
+    </div>
+  );
+}
+
+Object.assign(window, { AddressSetScreen, FeedbackScreen, ReportScreen });
+
+</script>
+<script type="text/babel" data-module="conduct" data-presets="react">
+/* global React, Icon, useBrand, NEUTRAL, TYPE, STATUS,
+   ProviderHeader, Card, Tag, CodeTag, PAvatar,
+   PrimaryButton, GhostButton, BottomBar, SectionHeader, AnswerPills,
+   SpeakerChip, StaticWave, LiveWave, fmtDuration, BrandWatermark
+*/
+
+const { useState: cdUseState } = React;
+
+/* ============================================================
+   ConductScreen — variant A: stacked (recorder → checksheet → photos)
+   variant B: tabbed (Audio / Checksheet / Photos)
+   variant C: sticky-recorder (recorder pinned at top while scrolling)
+   ============================================================ */
+function ConductScreen({ variant = 'stacked', recState = 'idle', onBack, onNext }) {
+  const { brand } = useBrand();
+  return (
+    <div className="phone-scroll" style={{
+      width: '100%', height: '100%', overflowY: 'auto',
+      background: NEUTRAL.bg, paddingBottom: 92,
+    }}>
+      <ProviderHeader flush onBack={onBack}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
+          <span style={{ fontSize: 11, opacity: 0.7, ...TYPE.num }}>4 / 7</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 9, background: 'rgba(255,255,255,0.14)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 700, fontSize: 16, flexShrink: 0,
+          }}>4</div>
+          <div>
+            <div style={{ ...TYPE.h1, color: '#FFFFFF' }}>Site Walkthrough</div>
+            <div style={{ fontSize: 12, opacity: 0.78, marginTop: 2 }}>Identify hazards, controls</div>
+          </div>
+        </div>
+      </ProviderHeader>
+
+      {variant === 'tabbed' && <ConductTabBar />}
+
+      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Recorder */}
+        {variant === 'sticky' ? (
+          <div style={{ position: 'sticky', top: 8, zIndex: 3 }}>
+            <RecorderCard state={recState} compact />
+          </div>
+        ) : (
+          <RecorderCard state={recState} />
+        )}
+
+        {/* Checksheet items (skip in tabbed-photos demo) */}
+        <CheckItem letter="a"
+          prompt="As you walk through the site, can the student identify 5 current potential hazards that require noting?"
+          answer={recState === 'recording' ? 'yes' : null}
+          list={recState === 'recording' ? ['Loose scaffold plank', 'Trailing cable across walkway', '', '', ''] : null}
+          photoPrompt="Photo of a hazard identified on walkthrough"
+        />
+        <CheckItem letter="b"
+          prompt="Can the student identify 3 tools, equipment and/or machinery that requires specific safety consideration?"
+          answer={null}
+        />
+        <CheckItem letter="c"
+          prompt="Can the student describe a task they are currently working on, identify potential hazards involved, any risk involved and name some controls they are using to mitigate these risks?"
+          answer={null}
+          notes
+        />
+
+        {/* Photos card */}
+        <PhotoCard count={recState === 'complete' || recState === 'submitted' ? 3 : 0} />
+      </div>
+
+      <BottomBar>
+        <button style={{
+          padding: '11px 14px', background: '#FFFFFF', border: `1px solid ${NEUTRAL.line}`,
+          borderRadius: 10, cursor: 'pointer',
+        }}><Icon name="chevron-left" size={16} color={NEUTRAL.ink2} /></button>
+        <PrimaryButton onClick={onNext} trailing="chevron-right">Review & submit</PrimaryButton>
+      </BottomBar>
+    </div>
+  );
+}
+
+function ConductTabBar() {
+  const { brand } = useBrand();
+  return (
+    <div style={{
+      background: '#FFFFFF', padding: '0 14px',
+      borderBottom: `1px solid ${NEUTRAL.line}`,
+      display: 'flex', gap: 0, position: 'sticky', top: 0, zIndex: 2,
+    }}>
+      {['Audio', 'Checksheet', 'Photos'].map((t, i) => {
+        const active = i === 1;
+        return (
+          <button key={t} style={{
+            padding: '11px 0', flex: 1, border: 'none', background: 'transparent',
+            fontSize: 12.5, fontWeight: active ? 700 : 500,
+            color: active ? brand.primary : NEUTRAL.mute,
+            borderBottom: `2px solid ${active ? brand.primary : 'transparent'}`,
+            cursor: 'pointer',
+          }}>{t}</button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ============================================================
+   RecorderCard — accepts state: idle | recording | paused | complete | offline | submitted
+   ============================================================ */
+function RecorderCard({ state = 'idle', compact = false }) {
+  const { brand } = useBrand();
+  const isRec = state === 'recording' || state === 'paused';
+  const isDone = state === 'complete' || state === 'submitted' || state === 'offline';
+  const elapsed = state === 'recording' ? 87 : state === 'paused' ? 124 : isDone ? 245 : 0;
+
+  if (state === 'submitted') {
+    return (
+      <div style={{
+        background: STATUS.pass.bg, borderRadius: 12, padding: 12,
+        display: 'flex', alignItems: 'center', gap: 10,
+        border: `1px solid ${STATUS.pass.solid}25`,
+      }}>
+        <Icon name="check-circle" size={20} color={STATUS.pass.solid} />
+        <div style={{ flex: 1 }}>
+          <div style={{ ...TYPE.smallStrong, color: STATUS.pass.fg }}>Submitted &amp; locked</div>
+          <div style={{ fontSize: 11, color: STATUS.pass.fg, opacity: 0.8 }}>This section is read-only</div>
+        </div>
+        <div style={{ fontSize: 12, color: STATUS.pass.fg, ...TYPE.num, fontWeight: 600 }}>{fmtDuration(elapsed)}</div>
+      </div>
+    );
+  }
+
+  if (state === 'offline') {
+    return (
+      <Card padding={12}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 999, background: STATUS.offline.bg,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><Icon name="cloud-off" size={16} color={STATUS.offline.fg} /></div>
+          <div style={{ flex: 1 }}>
+            <div style={{ ...TYPE.smallStrong, color: NEUTRAL.ink }}>Saved locally</div>
+            <div style={{ fontSize: 11, color: NEUTRAL.mute, marginTop: 1 }}>Will sync when you're back online</div>
+          </div>
+          <Tag tone="offline">Queued</Tag>
+        </div>
+        <StaticWave color={STATUS.offline.fg} bars={36} height={28} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+          <Icon name="play" size={14} color={NEUTRAL.body} />
+          <div style={{ fontSize: 11, color: NEUTRAL.mute, ...TYPE.num }}>0:00 / {fmtDuration(elapsed)}</div>
+          <div style={{ flex: 1 }} />
+          <Icon name="hard-drive" size={12} color={NEUTRAL.mute} />
+          <span style={{ fontSize: 11, color: NEUTRAL.mute }}>2.4 MB</span>
+        </div>
+      </Card>
+    );
+  }
+
+  if (isDone) {
+    return (
+      <Card padding={12}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 999, background: brand.primarySoft,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><Icon name="mic" size={16} color={brand.primary} /></div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+              textTransform: 'uppercase', color: NEUTRAL.mute }}>Recorded</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: NEUTRAL.ink, ...TYPE.num, lineHeight: 1.1 }}>{fmtDuration(elapsed)}</div>
+          </div>
+          <button style={{ width: 34, height: 34, borderRadius: 999, background: '#FEE2E2',
+            border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}><Icon name="trash-2" size={14} color="#DC2626" /></button>
+        </div>
+        <StaticWave color={brand.accent} bars={36} height={28} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+          <button style={{ width: 28, height: 28, borderRadius: 999, background: brand.primary,
+            border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}><Icon name="play" size={12} color="#FFFFFF" strokeWidth={2.5} /></button>
+          <div style={{ fontSize: 11, color: NEUTRAL.mute, ...TYPE.num }}>0:00 / {fmtDuration(elapsed)}</div>
+        </div>
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${NEUTRAL.line2}` }}>
+          <div style={{ ...TYPE.eyebrow, fontSize: 9.5, color: NEUTRAL.mute, marginBottom: 6 }}>Speaker track</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {[
+              { t: '0:00', s: 'adviser' },
+              { t: '0:18', s: 'student' },
+              { t: '1:42', s: 'employer' },
+              { t: '2:30', s: 'student' },
+              { t: '3:55', s: 'adviser' },
+            ].map((m, i) => {
+              const colours = { adviser: brand.primary, student: brand.accent, employer: brand.navy };
+              const labels = { adviser: 'Adviser', student: 'Student', employer: 'Employer' };
+              return (
+                <span key={i} style={{
+                  fontSize: 10, fontWeight: 600,
+                  padding: '2px 6px', borderRadius: 5, color: '#FFFFFF',
+                  background: colours[m.s],
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                }}>
+                  <span style={{ opacity: 0.75, ...TYPE.num }}>{m.t}</span>
+                  {labels[m.s]}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // idle / recording / paused
+  return (
+    <div style={{
+      borderRadius: 12,
+      padding: 12,
+      background: isRec
+        ? `linear-gradient(180deg, ${brand.navy} 0%, ${brand.navyDeep} 100%)`
+        : '#FFFFFF',
+      boxShadow: '0 1px 2px rgba(15,20,25,0.04), 0 0 0 1px rgba(15,20,25,0.04)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isRec ? 10 : 0 }}>
+        <div>
+          <div style={{
+            fontSize: 9.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: isRec ? 'rgba(255,255,255,0.7)' : NEUTRAL.mute,
+          }}>
+            {state === 'recording' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 6, height: 6, borderRadius: 999, background: '#EF4444',
+                animation: 'pxPulse 1.2s ease-in-out infinite' }} />
+              Recording this section
+            </span> : state === 'paused' ? 'Paused' : 'Audio evidence'}
+          </div>
+          <div style={{
+            fontSize: 22, fontWeight: 700, ...TYPE.num, letterSpacing: '-0.02em',
+            color: isRec ? '#FFFFFF' : NEUTRAL.ink,
+          }}>{fmtDuration(elapsed)}</div>
+        </div>
+        {!isRec ? (
+          <button style={{
+            width: 50, height: 50, borderRadius: 999, background: brand.accent,
+            border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(244,121,32,0.35)', cursor: 'pointer',
+          }}>
+            <Icon name="mic" size={22} color="#FFFFFF" />
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button style={{
+              width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.18)',
+              border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}><Icon name={state === 'paused' ? 'play' : 'pause'} size={14} color="#FFFFFF" /></button>
+            <button style={{
+              width: 50, height: 50, borderRadius: 999, background: '#EF4444',
+              border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(239,68,68,0.4)', cursor: 'pointer',
+            }}><Icon name="square" size={16} color="#FFFFFF" strokeWidth={3} /></button>
+          </div>
+        )}
+      </div>
+      {isRec && (
+        <>
+          <LiveWave bars={32} height={32} paused={state === 'paused'} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginTop: 10 }}>
+            <SpeakerChip id="adviser" active={state === 'recording'} dark />
+            <SpeakerChip id="student" dark />
+            <SpeakerChip id="employer" dark />
+          </div>
+          <div style={{ marginTop: 8, fontSize: 10, color: 'rgba(255,255,255,0.65)', textAlign: 'center' }}>
+            Tap who's speaking as the conversation flows
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function CheckItem({ letter, prompt, answer, notes, list, photoPrompt }) {
+  const { brand } = useBrand();
+  return (
+    <Card padding={14}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+        <div style={{
+          width: 24, height: 24, borderRadius: 6,
+          background: answer ? brand.primarySoft : NEUTRAL.bg,
+          color: brand.navy,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 11, fontWeight: 700, flexShrink: 0,
+        }}>{letter}</div>
+        <div style={{ flex: 1, ...TYPE.small, color: NEUTRAL.ink2, lineHeight: 1.5 }}>{prompt}</div>
+      </div>
+      <AnswerPills value={answer} />
+      {list && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {list.map((v, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ ...TYPE.num, color: NEUTRAL.mute2, width: 18, fontSize: 11 }}>{['i','ii','iii','iv','v'][i]}.</span>
+              <input value={v} readOnly style={{
+                flex: 1, fontSize: 13, padding: '7px 10px', borderRadius: 7,
+                background: v ? '#FFFFFF' : NEUTRAL.bg,
+                border: `1px solid ${v ? NEUTRAL.line : 'transparent'}`, color: NEUTRAL.ink,
+              }} />
+            </div>
+          ))}
+        </div>
+      )}
+      {notes && (
+        <button style={{
+          marginTop: 8, padding: 0, background: 'transparent', border: 'none',
+          fontSize: 11.5, color: NEUTRAL.mute, fontWeight: 600,
+          display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+        }}>
+          <Icon name="plus" size={11} color={NEUTRAL.mute} /> Add notes
+        </button>
+      )}
+      {photoPrompt && (
+        <div style={{
+          marginTop: 8, padding: '7px 10px', borderRadius: 7,
+          background: brand.accentSoft, color: '#8A3F00',
+          display: 'flex', alignItems: 'flex-start', gap: 6,
+          fontSize: 11.5, lineHeight: 1.4,
+        }}>
+          <Icon name="camera" size={11} color="#8A3F00" style={{ marginTop: 2, flexShrink: 0 }} />
+          <span>Evidence: {photoPrompt}</span>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function PhotoCard({ count = 0 }) {
+  const { brand } = useBrand();
+  return (
+    <Card padding={12}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ ...TYPE.eyebrow, color: NEUTRAL.mute, fontSize: 10 }}>Photo evidence</div>
+        <span style={{ fontSize: 11, color: NEUTRAL.mute, ...TYPE.num }}>{count}</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 5 }}>
+        {Array.from({ length: count }).map((_, i) => (
+          <div key={i} style={{
+            aspectRatio: '1 / 1', borderRadius: 8, overflow: 'hidden',
+            background: `linear-gradient(135deg, oklch(0.85 0.04 ${(i*47) % 360}), oklch(0.65 0.08 ${(i*47) % 360}))`,
+          }}/>
+        ))}
+        <button style={{
+          aspectRatio: '1 / 1', borderRadius: 8,
+          background: NEUTRAL.bg, border: `1px dashed ${NEUTRAL.line}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+        }}>
+          <Icon name="camera" size={18} color={brand.primary} />
+        </button>
+      </div>
+    </Card>
+  );
+}
+
+/* ============================================================
+   MicPermissionScreen — error state
+   ============================================================ */
+function MicPermissionScreen() {
+  const { brand } = useBrand();
+  return (
+    <div style={{ width: '100%', height: '100%', background: NEUTRAL.bg, display: 'flex',
+      flexDirection: 'column', paddingTop: 56,
+    }}>
+      <ProviderHeader flush onBack={() => {}} title="Site Walkthrough" eyebrow="Section 4 of 7" />
+      <div style={{ flex: 1, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+        <div style={{
+          width: 70, height: 70, borderRadius: 999, background: STATUS.risk.bg,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18,
+        }}>
+          <Icon name="mic-off" size={28} color={STATUS.risk.solid} />
+        </div>
+        <div style={{ ...TYPE.h1, color: NEUTRAL.ink, marginBottom: 6 }}>Microphone access needed</div>
+        <div style={{ ...TYPE.small, color: NEUTRAL.body, maxWidth: 260, marginBottom: 20 }}>
+          We use your mic to record the verbal assessment. Audio stays on this device until you submit.
+        </div>
+        <PrimaryButton full={false} icon="mic">Enable microphone</PrimaryButton>
+        <button style={{
+          marginTop: 12, background: 'transparent', border: 'none',
+          fontSize: 12, color: NEUTRAL.mute, fontWeight: 600, cursor: 'pointer',
+        }}>Open Settings →</button>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { ConductScreen, RecorderCard, MicPermissionScreen });
+
+</script>
+<script type="text/babel" data-module="summary" data-presets="react">
+/* global React, Icon, useBrand, NEUTRAL, TYPE, STATUS,
+   ProviderHeader, Card, Tag, CodeTag, PAvatar,
+   PrimaryButton, GhostButton, BottomBar, SectionHeader, BrandWatermark
+*/
+
+/* ============================================================
+   Summary screen — review & submit
+   ============================================================ */
+function SummaryScreen({ submitted = false, onBack, onContinue }) {
+  const { brand } = useBrand();
+  const s = window.PROVIDER_DATA.CASELOAD[0];
+  const sections = [
+    { n: 1, title: 'Hazard Board',     yes: 4, partial: 0, no: 0 },
+    { n: 2, title: 'PPE — Current',    yes: 2, partial: 0, no: 0 },
+    { n: 3, title: 'Register Onsite',  yes: 1, partial: 1, no: 0 },
+    { n: 4, title: 'Site Walkthrough', yes: 2, partial: 1, no: 0 },
+    { n: 5, title: 'Emergency',        yes: 4, partial: 0, no: 0 },
+    { n: 6, title: 'Responsibilities', yes: 2, partial: 0, no: 0 },
+    { n: 7, title: 'Verification',     yes: 2, partial: 0, no: 0 },
+  ];
+  const totals = sections.reduce((a, s) => ({
+    yes: a.yes + s.yes, partial: a.partial + s.partial, no: a.no + s.no,
+  }), { yes: 0, partial: 0, no: 0 });
+  const total = totals.yes + totals.partial + totals.no;
+  const outcome = totals.no === 0 && totals.partial <= 2 ? 'pass' : totals.partial > 4 ? 'partial' : 'pass';
+
+  return (
+    <div className="phone-scroll" style={{
+      width: '100%', height: '100%', overflowY: 'auto',
+      background: NEUTRAL.bg, paddingBottom: 92,
+    }}>
+      <ProviderHeader flush onBack={onBack} eyebrow="US 24354 · Site Induction"
+        title={submitted ? 'Submitted' : 'Review & submit'}
+      >
+        {submitted && (
+          <div style={{
+            marginTop: 12, padding: '10px 12px', borderRadius: 9,
+            background: 'rgba(255,255,255,0.14)',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <Icon name="check-circle" size={18} color="#FFFFFF" />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600 }}>Sent to NZQA · queued for moderation</div>
+              <div style={{ fontSize: 11, opacity: 0.8 }}>21 Apr 2026 · 11:42</div>
+            </div>
+          </div>
+        )}
+      </ProviderHeader>
+
+      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Hero outcome */}
+        <Card padding={0} style={{ overflow: 'hidden' }}>
+          <div style={{
+            padding: '18px 16px',
+            background: outcome === 'pass'
+              ? `linear-gradient(135deg, ${STATUS.pass.solid} 0%, #15803D 100%)`
+              : `linear-gradient(135deg, ${brand.accent} 0%, ${brand.accentDeep} 100%)`,
+            color: '#FFFFFF',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Icon name={outcome === 'pass' ? 'award' : 'alert-circle'} size={16} color="#FFFFFF" />
+              <span style={{ ...TYPE.eyebrow, fontSize: 10, opacity: 0.9 }}>Overall outcome</span>
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em' }}>
+              {outcome === 'pass' ? 'Achieved' : 'Achieved with notes'}
+            </div>
+            <div style={{ fontSize: 12.5, opacity: 0.88, marginTop: 4 }}>
+              {totals.yes} of {total} items met · {totals.partial} partial · 1 evidence note
+            </div>
+          </div>
+          <div style={{ padding: 12, display: 'flex', gap: 12 }}>
+            <SummaryStat icon="check-circle" v={totals.yes} l="Met" c={STATUS.pass.solid} />
+            <SummaryStat icon="alert-circle" v={totals.partial} l="Partial" c={STATUS.partial.solid} />
+            <SummaryStat icon="x-circle" v={totals.no} l="Not yet" c={NEUTRAL.mute} />
+          </div>
+        </Card>
+
+        {/* Student card */}
+        <Card>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <PAvatar name={s.name} size={40} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ ...TYPE.bodyStrong, color: NEUTRAL.ink }}>{s.name}</div>
+              <div style={{ fontSize: 11.5, color: NEUTRAL.mute, marginTop: 1 }}>{s.school} · {s.employer}</div>
+            </div>
+            <CodeTag>{s.code}</CodeTag>
+          </div>
+        </Card>
+
+        {/* Section breakdown */}
+        <div>
+          <SectionHeader title="By section" />
+          <Card padding={0}>
+            {sections.map((sec, i) => {
+              const t = sec.yes + sec.partial + sec.no;
+              return (
+                <div key={sec.n} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 14px',
+                  borderTop: i === 0 ? 'none' : `1px solid ${NEUTRAL.line2}`,
+                }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: 6,
+                    background: brand.primarySoft, color: brand.navy,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 700, flexShrink: 0,
+                  }}>{sec.n}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ ...TYPE.smallStrong, color: NEUTRAL.ink }}>{sec.title}</div>
+                    <div style={{ fontSize: 11, color: NEUTRAL.mute, ...TYPE.num, marginTop: 1 }}>
+                      {sec.yes} met · {sec.partial} partial
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 2, alignItems: 'center', height: 16 }}>
+                    {Array.from({ length: t }).map((_, j) => (
+                      <div key={j} style={{
+                        width: 5, height: 16, borderRadius: 1,
+                        background: j < sec.yes ? STATUS.pass.solid
+                          : j < sec.yes + sec.partial ? STATUS.partial.solid
+                          : NEUTRAL.line,
+                      }} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
+        </div>
+
+        {/* Evidence summary */}
+        <div>
+          <SectionHeader title="Evidence captured" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
+            <Card padding={12} style={{ textAlign: 'center' }}>
+              <Icon name="mic" size={18} color={brand.primary} />
+              <div style={{ fontSize: 18, fontWeight: 700, ...TYPE.num, color: NEUTRAL.ink, marginTop: 4 }}>7</div>
+              <div style={{ fontSize: 10.5, color: NEUTRAL.mute, marginTop: 1 }}>Audio · 14:32</div>
+            </Card>
+            <Card padding={12} style={{ textAlign: 'center' }}>
+              <Icon name="camera" size={18} color={brand.accent} />
+              <div style={{ fontSize: 18, fontWeight: 700, ...TYPE.num, color: NEUTRAL.ink, marginTop: 4 }}>9</div>
+              <div style={{ fontSize: 10.5, color: NEUTRAL.mute, marginTop: 1 }}>Photos</div>
+            </Card>
+            <Card padding={12} style={{ textAlign: 'center' }}>
+              <Icon name="file-text" size={18} color={NEUTRAL.body} />
+              <div style={{ fontSize: 18, fontWeight: 700, ...TYPE.num, color: NEUTRAL.ink, marginTop: 4 }}>4</div>
+              <div style={{ fontSize: 10.5, color: NEUTRAL.mute, marginTop: 1 }}>Notes</div>
+            </Card>
+          </div>
+        </div>
+
+        {/* Adviser sign-off */}
+        {!submitted && (
+          <Card>
+            <div style={{ ...TYPE.smallStrong, color: NEUTRAL.ink, marginBottom: 6 }}>Adviser sign-off</div>
+            <div style={{
+              padding: 14, background: NEUTRAL.bg, borderRadius: 9,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+              borderTop: `2px dashed ${NEUTRAL.line}`,
+              borderBottom: `2px dashed ${NEUTRAL.line}`,
+            }}>
+              <div style={{ fontSize: 22, fontWeight: 700,
+                fontFamily: "'Caveat', cursive", color: brand.navy,
+                fontStyle: 'italic',
+              }}>Dan Te Whaiti</div>
+              <div style={{ fontSize: 10.5, color: NEUTRAL.mute }}>Tap to re-sign</div>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 11.5, color: NEUTRAL.mute,
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              <Icon name="shield-check" size={11} color={NEUTRAL.mute} />
+              Confirms accuracy of recorded outcomes &amp; evidence
+            </div>
+          </Card>
+        )}
+      </div>
+
+      <BottomBar>
+        {submitted ? (
+          <PrimaryButton icon="download" fill={brand.primary}>Download PDF</PrimaryButton>
+        ) : (
+          <PrimaryButton onClick={onContinue} icon="send">Submit & give feedback</PrimaryButton>
+        )}
+      </BottomBar>
+    </div>
+  );
+}
+
+function SummaryStat({ icon, v, l, c }) {
+  return (
+    <div style={{ flex: 1, textAlign: 'center', padding: '6px 0' }}>
+      <Icon name={icon} size={14} color={c} />
+      <div style={{ fontSize: 18, fontWeight: 700, ...TYPE.num, color: NEUTRAL.ink, marginTop: 2, lineHeight: 1.1 }}>{v}</div>
+      <div style={{ fontSize: 10, color: NEUTRAL.mute, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 1 }}>{l}</div>
+    </div>
+  );
+}
+
+Object.assign(window, { SummaryScreen });
+
+</script>
+<script type="text/babel" data-module="app" data-presets="react">
+
+/* global React, ReactDOM, BrandProvider, I18nProvider, Phone,
+   HomeScreen, ScheduleScreen, AssessmentOverviewScreen, AddressSetScreen,
+   ConductScreen, SummaryScreen, FeedbackScreen, ReportScreen, Icon */
+
+const { useState, useEffect } = React;
+
+function useFitScale(phoneW = 412, gutter = 24, maxScale = 1) {
+  const [s, setS] = useState(maxScale);
+  useEffect(() => {
+    const update = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const sW = (vw - gutter) / phoneW;
+      const sH = (vh - gutter) / (820 + 22);
+      setS(Math.min(maxScale, sW, sH));
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+  return s;
+}
+
+const FLOW = [
+  'home',
+  'schedule',
+  'overview',
+  'address',
+  'conduct',
+  'summary',
+  'feedback',
+  'report',
+];
+
+function App() {
+  const [screen, setScreen] = useState('home');
+  const [dir, setDir] = useState('forward');
+  const [animKey, setAnimKey] = useState(0);
+  const scale = useFitScale();
+
+  function navigate(target) {
+    const curIdx = FLOW.indexOf(screen);
+    const nextIdx = FLOW.indexOf(target);
+    setDir(nextIdx >= curIdx ? 'forward' : 'back');
+    setScreen(target);
+    setAnimKey(k => k + 1);
+  }
+
+  function reset() {
+    setDir('back');
+    setScreen('home');
+    setAnimKey(k => k + 1);
+  }
+
+  function back() {
+    const idx = FLOW.indexOf(screen);
+    if (idx > 0) navigate(FLOW[idx - 1]);
+  }
+
+  function forward(target) {
+    return () => navigate(target);
+  }
+
+  let content;
+  switch (screen) {
+    case 'home':
+      content = <HomeScreen onConductAssessment={forward('schedule')} />;
+      break;
+    case 'schedule':
+      content = <ScheduleScreen onBack={back} onVisitClick={forward('overview')} />;
+      break;
+    case 'overview':
+      content = <AssessmentOverviewScreen progress={0} onBack={back} onContinue={forward('address')} />;
+      break;
+    case 'address':
+      content = <AddressSetScreen state="prefill" onBack={back} onContinue={forward('conduct')} />;
+      break;
+    case 'conduct':
+      content = <ConductScreen variant="stacked" recState="complete" onBack={back} onNext={forward('summary')} />;
+      break;
+    case 'summary':
+      content = <SummaryScreen onBack={back} onContinue={forward('feedback')} />;
+      break;
+    case 'feedback':
+      content = <FeedbackScreen onBack={back} onSubmit={forward('report')} />;
+      break;
+    case 'report':
+      content = <ReportScreen state="sent" onBack={back} />;
+      break;
+    default:
+      content = <HomeScreen onConductAssessment={forward('schedule')} />;
+  }
+
+  return (
+    <BrandProvider providerId="bcito" densityKey="comfortable">
+      <I18nProvider lang="en">
+        <div className="stage">
+          <div className="phone-wrap">
+            <Phone statusDark={false} scale={scale}>
+              <div key={animKey} className={'slide ' + (dir === 'forward' ? 'slide-in-right' : 'slide-in-left')}>
+                {content}
+              </div>
+            </Phone>
+          </div>
+          <button className="reset-btn" onClick={reset} aria-label="Reset to Home">
+            <Icon name="rotate-ccw" size={16} color="#FFFFFF" />
+            <span>Reset to Home</span>
+          </button>
+        </div>
+      </I18nProvider>
+    </BrandProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+</script>
+</body></html>

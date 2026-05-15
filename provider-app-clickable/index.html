@@ -142,7 +142,11 @@
 /* Provider design system — white-label tokens for BCITO / Skills / Competenz / neutral
    Plus a density mode and a context for components to consume. */
 
-const { createContext, useContext, useMemo } = React;
+/* Shared hook bindings — every text/babel block in this file runs in the same
+   global script scope (Babel Standalone does not wrap in an IIFE), so React
+   hooks are destructured ONCE here and consumed by every subsequent block. */
+const { useState, useEffect, useMemo, useRef, useLayoutEffect, useCallback,
+        createContext, useContext } = React;
 
 /* ============================================================
    Provider brand registry — each provider sets its own palette.
@@ -327,8 +331,7 @@ Object.assign(window, {
 <script type="text/babel" data-module="icons" data-presets="react">
 /* global React, lucide */
 /* Shared icon helper + design tokens + i18n strings (Te Reo / English) */
-
-const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
+/* React hooks destructured once at the top of the `brand` block — reused here. */
 
 /* ---------- Icon ---------- */
 function lucideKey(name) { return name.replace(/(^|-)([a-z])/g, (_, __, c) => c.toUpperCase()); }
@@ -589,8 +592,7 @@ Object.assign(window, { Icon, VxMark, Spinner, Pill, Avatar, StatusBar, I18nProv
 /* global React, Icon, useBrand, NEUTRAL, TYPE, STATUS */
 /* Provider app — shared components.
    All consume BrandCtx so they re-skin with the active provider. */
-
-const { useState } = React;
+/* useState already destructured in the `brand` block — reused here. */
 
 /* ============================================================
    ProviderHeader — the gradient hero used across the app.
@@ -3176,8 +3178,7 @@ Object.assign(window, { SummaryScreen });
 /* global React, ReactDOM, BrandProvider, I18nProvider, Phone,
    HomeScreen, ScheduleScreen, AssessmentOverviewScreen, AddressSetScreen,
    ConductScreen, SummaryScreen, FeedbackScreen, ReportScreen, Icon */
-
-const { useState, useEffect } = React;
+/* useState / useEffect already destructured in the `brand` block — reused here. */
 
 function useFitScale(phoneW = 412, gutter = 24, maxScale = 1) {
   const [s, setS] = useState(maxScale);
